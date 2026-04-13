@@ -8,7 +8,7 @@ import { StatCardsSkeleton } from '../../components/common/Skeleton';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
-import type { AuditLog } from '../../types';
+import type { AuditLog, Attendance } from '../../types';
 import type { LogisticsItem } from '../../types';
 import AttendanceHeatmap from '../../components/ui/AttendanceHeatmap';
 
@@ -48,6 +48,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LogisticsItem[]>([]);
+  const [heatmapAttendances, setHeatmapAttendances] = useState<Attendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -57,6 +58,9 @@ export default function AdminDashboard() {
     setError(null);
     try {
       const today = new Date().toISOString().split('T')[0];
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
       const [
         usersResult,
         tasksResult,
@@ -68,6 +72,7 @@ export default function AdminDashboard() {
         pinnedAnnouncementsResult,
         logisticsResult,
         logsResult,
+        heatmapResult,
       ] = await Promise.all([
         supabase.from('users').select('id', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('tasks').select('id', { count: 'exact', head: true }),
@@ -83,6 +88,12 @@ export default function AdminDashboard() {
           .select('*, user:user_id(id,nama,nrp,role)')
           .order('created_at', { ascending: false })
           .limit(8),
+        supabase
+          .from('attendance')
+          .select('*, user:user_id(id,nama,nrp,pangkat)')
+          .gte('tanggal', thirtyDaysAgoStr)
+          .lte('tanggal', today)
+          .order('tanggal', { ascending: false }),
       ]);
 
       const logisticsItems = (logisticsResult.data as LogisticsItem[]) ?? [];
@@ -99,6 +110,7 @@ export default function AdminDashboard() {
         pinnedPengumuman: pinnedAnnouncementsResult.count ?? 0,
       });
       setRecentLogs((logsResult.data as AuditLog[]) ?? []);
+      setHeatmapAttendances((heatmapResult.data as Attendance[]) ?? []);
       setLowStockItems(lowStock);
       setLastUpdated(new Date());
       return true;
@@ -314,7 +326,7 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-bold text-text-primary">Statistik Kehadiran</h3>
             <p className="text-sm text-text-muted">Visualisasi 30 hari terakhir untuk monitoring tren disiplin kehadiran.</p>
             <div className="mt-4">
-              <AttendanceHeatmap attendances={[]} />
+              <AttendanceHeatmap attendances={heatmapAttendances} />
             </div>
           </div>
           <div className="app-card p-5">
