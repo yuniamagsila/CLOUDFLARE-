@@ -28,6 +28,7 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     { path: '/komandan/attendance', label: 'Kehadiran', icon: '📅' },
     { path: '/komandan/evaluation', label: 'Evaluasi', icon: '📝' },
     { path: '/komandan/reports', label: 'Laporan', icon: '📊' },
+    { path: '/komandan/logistics-request', label: 'Permintaan Logistik', icon: '📦' },
   ],
   prajurit: [
     { path: '/prajurit/dashboard', label: 'Dashboard', icon: '⊞' },

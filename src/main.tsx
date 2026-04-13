@@ -5,6 +5,7 @@ import './index.css';
 import { router } from './router';
 import { useAuthStore } from './store/authStore';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export function App() {
   const { restoreSession, isLoading } = useAuthStore();
@@ -23,6 +24,8 @@ if (!root) throw new Error('Root element not found');
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );

@@ -217,3 +217,27 @@ export interface KaryoSession {
   role: Role;
   expires_at: string;
 }
+
+// ============================================================
+// Logistics Request
+// ============================================================
+
+export type LogisticsRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface LogisticsRequest {
+  id: string;
+  requested_by: string;
+  satuan: string;
+  nama_item: string;
+  jumlah: number;
+  satuan_item?: string;
+  alasan: string;
+  status: LogisticsRequestStatus;
+  admin_note?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  created_at: string;
+  updated_at: string;
+  requester?: User;
+  reviewer?: User;
+}

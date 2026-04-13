@@ -4,19 +4,28 @@ import Table from '../../components/ui/Table';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import Input from '../../components/common/Input';
+import Badge from '../../components/common/Badge';
 import PageHeader from '../../components/ui/PageHeader';
 import { useUIStore } from '../../store/uiStore';
+import { useLogisticsRequests } from '../../hooks/useLogisticsRequests';
 import { supabase } from '../../lib/supabase';
-import type { LogisticsItem } from '../../types';
+import type { LogisticsItem, LogisticsRequest } from '../../types';
 
 export default function Logistics() {
   const { showNotification } = useUIStore();
+  const { requests, reviewRequest } = useLogisticsRequests();
   const [items, setItems] = useState<LogisticsItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [selectedReq, setSelectedReq] = useState<LogisticsRequest | null>(null);
+  const [adminNote, setAdminNote] = useState('');
   const [form, setForm] = useState<Partial<LogisticsItem>>({ nama_item: '', jumlah: 0, kondisi: 'baik' });
+  const [activeTab, setActiveTab] = useState<'inventory' | 'requests'>('inventory');
+
+  const pendingRequests = requests.filter((r) => r.status === 'pending');
 
   const fetchItems = useCallback(async () => {
     setIsLoading(true);
@@ -54,49 +63,215 @@ export default function Logistics() {
     rusak_berat: 'text-accent-red',
   };
 
+  const handleReview = async (
+    id: string,
+    status: 'approved' | 'rejected',
+    note?: string,
+  ) => {
+    setReviewingId(id);
+    try {
+      await reviewRequest(id, status, note);
+      showNotification(
+        status === 'approved' ? 'Permintaan disetujui' : 'Permintaan ditolak',
+        status === 'approved' ? 'success' : 'info',
+      );
+      setSelectedReq(null);
+      setAdminNote('');
+    } catch {
+      showNotification('Gagal memproses permintaan', 'error');
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
   return (
     <DashboardLayout title="Manajemen Logistik">
       <div className="space-y-5">
         <PageHeader
           title="Manajemen Logistik"
-          subtitle="Inventaris dan kondisi perlengkapan operasional dipantau secara berkala."
+          subtitle="Inventaris perlengkapan dan permintaan dari Komandan dikelola di sini."
           meta={<span>Total item: {filtered.length}</span>}
           actions={<Button onClick={() => setShowCreate(true)}>+ Tambah Item</Button>}
         />
 
-        <div className="app-card flex flex-col gap-3 p-4 sm:flex-row sm:p-5">
-          <input
-            type="text"
-            placeholder="Cari item..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="form-control flex-1"
-          />
+        {/* Tab bar */}
+        <div className="app-card flex items-center gap-1 p-1.5 sm:w-fit">
+          {([
+            { key: 'inventory', label: 'Inventaris', icon: '📦' },
+            { key: 'requests',  label: `Permintaan${pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}`, icon: '📋' },
+          ] as const).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-primary text-white'
+                  : 'text-text-muted hover:text-text-primary'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.key === 'requests' && pendingRequests.length > 0 && activeTab !== 'requests' && (
+                <span className="ml-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent-red px-1 text-[10px] font-bold text-white">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
-        <Table<LogisticsItem>
-          columns={[
-            { key: 'nama_item', header: 'Nama Item' },
-            { key: 'kategori', header: 'Kategori', render: (i) => i.kategori ?? '—' },
-            { key: 'jumlah', header: 'Jumlah', render: (i) => `${i.jumlah} ${i.satuan_item ?? ''}` },
-            {
-              key: 'kondisi',
-              header: 'Kondisi',
-              render: (i) => i.kondisi ? (
-                <span className={`font-medium capitalize ${kondisiColors[i.kondisi]}`}>
-                  {i.kondisi.replace('_', ' ')}
-                </span>
-              ) : '—',
-            },
-            { key: 'lokasi', header: 'Lokasi', render: (i) => i.lokasi ?? '—' },
-          ]}
-          data={filtered}
-          keyExtractor={(i) => i.id}
-          isLoading={isLoading}
-          emptyMessage="Tidak ada item logistik"
-        />
+        {activeTab === 'inventory' && (
+          <>
+            <div className="app-card flex flex-col gap-3 p-4 sm:flex-row sm:p-5">
+              <input
+                type="text"
+                placeholder="Cari item..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="form-control flex-1"
+              />
+            </div>
+
+            <Table<LogisticsItem>
+              columns={[
+                { key: 'nama_item', header: 'Nama Item' },
+                { key: 'kategori', header: 'Kategori', render: (i) => i.kategori ?? '—' },
+                { key: 'jumlah', header: 'Jumlah', render: (i) => `${i.jumlah} ${i.satuan_item ?? ''}` },
+                {
+                  key: 'kondisi',
+                  header: 'Kondisi',
+                  render: (i) => i.kondisi ? (
+                    <span className={`font-medium capitalize ${kondisiColors[i.kondisi]}`}>
+                      {i.kondisi.replace('_', ' ')}
+                    </span>
+                  ) : '—',
+                },
+                { key: 'lokasi', header: 'Lokasi', render: (i) => i.lokasi ?? '—' },
+              ]}
+              data={filtered}
+              keyExtractor={(i) => i.id}
+              isLoading={isLoading}
+              emptyMessage="Tidak ada item logistik"
+            />
+          </>
+        )}
+
+        {activeTab === 'requests' && (
+          <div className="space-y-3">
+            {requests.length === 0 ? (
+              <div className="app-card p-10 text-center text-text-muted">
+                Belum ada permintaan logistik dari Komandan
+              </div>
+            ) : (
+              requests.map((req) => {
+                const statusMap = {
+                  pending:  { variant: 'warning', label: 'Menunggu' },
+                  approved: { variant: 'success', label: 'Disetujui' },
+                  rejected: { variant: 'error',   label: 'Ditolak' },
+                } as const;
+                const s = statusMap[req.status];
+                return (
+                  <div key={req.id} className="app-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-text-primary">📦 {req.nama_item}</span>
+                          <Badge variant={s.variant}>{s.label}</Badge>
+                        </div>
+                        <p className="text-sm text-text-muted">
+                          Jumlah: {req.jumlah} {req.satuan_item ?? 'unit'} ·
+                          Satuan: {req.satuan} ·
+                          Oleh: {req.requester?.nama ?? '—'}
+                        </p>
+                        <p className="text-sm text-text-muted mt-0.5 truncate">{req.alasan}</p>
+                        {req.admin_note && (
+                          <p className="mt-1 text-xs text-text-muted italic">Catatan: {req.admin_note}</p>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        <span className="text-xs text-text-muted">
+                          {new Date(req.created_at).toLocaleDateString('id-ID')}
+                        </span>
+                        {req.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              isLoading={reviewingId === req.id}
+                              onClick={() => { setSelectedReq(req); setAdminNote(''); }}
+                            >
+                              Tinjau
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
       </div>
 
+      {/* Review Request Modal */}
+      <Modal
+        isOpen={!!selectedReq}
+        onClose={() => { setSelectedReq(null); setAdminNote(''); }}
+        title="Tinjau Permintaan Logistik"
+        size="md"
+        footer={
+          selectedReq ? (
+            <>
+              <Button variant="ghost" onClick={() => { setSelectedReq(null); setAdminNote(''); }}>Batal</Button>
+              <Button
+                variant="danger"
+                isLoading={reviewingId === selectedReq.id}
+                onClick={() => handleReview(selectedReq.id, 'rejected', adminNote)}
+              >
+                Tolak
+              </Button>
+              <Button
+                isLoading={reviewingId === selectedReq.id}
+                onClick={() => handleReview(selectedReq.id, 'approved', adminNote)}
+              >
+                ✓ Setujui
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {selectedReq && (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-surface/70 bg-surface/20 p-4 space-y-2 text-sm">
+              {[
+                { label: 'Item', value: selectedReq.nama_item },
+                { label: 'Jumlah', value: `${selectedReq.jumlah} ${selectedReq.satuan_item ?? 'unit'}` },
+                { label: 'Satuan', value: selectedReq.satuan },
+                { label: 'Diminta oleh', value: selectedReq.requester?.nama ?? '—' },
+                { label: 'Alasan', value: selectedReq.alasan },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between gap-2">
+                  <span className="text-text-muted">{label}</span>
+                  <span className="text-text-primary font-medium text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-text-primary">Catatan Admin (opsional)</label>
+              <textarea
+                className="form-control mt-1 min-h-20"
+                rows={3}
+                placeholder="Tuliskan catatan atau alasan keputusan..."
+                value={adminNote}
+                onChange={(e) => setAdminNote(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Add Item Modal */}
       <Modal
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
