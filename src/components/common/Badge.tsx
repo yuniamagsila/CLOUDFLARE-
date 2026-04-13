@@ -9,19 +9,19 @@ interface BadgeProps {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  success: 'bg-success/20 text-success border-success/30',
-  error: 'bg-accent-red/20 text-accent-red border-accent-red/30',
-  warning: 'bg-accent-gold/20 text-accent-gold border-accent-gold/30',
-  info: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  neutral: 'bg-surface text-text-muted border-surface',
-  gold: 'bg-accent-gold/20 text-accent-gold border-accent-gold/30',
+  success: 'border-green-200 bg-green-50 text-green-700 dark:border-success/35 dark:bg-success/16 dark:text-success',
+  error: 'border-red-200 bg-red-50 text-red-700 dark:border-accent-red/35 dark:bg-accent-red/16 dark:text-accent-red',
+  warning: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-accent-gold/40 dark:bg-accent-gold/16 dark:text-accent-gold',
+  info: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-primary/40 dark:bg-primary/16 dark:text-primary',
+  neutral: 'border-surface bg-slate-50 text-text-muted dark:bg-surface/55',
+  gold: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-accent-gold/40 dark:bg-accent-gold/14 dark:text-accent-gold',
 };
 
 export default function Badge({ variant = 'neutral', children, size = 'sm' }: BadgeProps) {
-  const sizes = { sm: 'text-xs px-2 py-0.5', md: 'text-sm px-3 py-1' };
+  const sizes = { sm: 'px-2.5 py-1 text-[11px]', md: 'px-3 py-1 text-sm' };
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border font-medium ${variants[variant]} ${sizes[size]}`}
+      className={`inline-flex items-center gap-1 rounded-full border font-semibold tracking-[0.02em] ${variants[variant]} ${sizes[size]}`}
     >
       {children}
     </span>

@@ -23,7 +23,7 @@ export default function Input({
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label htmlFor={inputId} className="text-sm font-medium text-text-primary">
+        <label htmlFor={inputId} className="text-sm font-semibold text-text-primary">
           {label}
           {props.required && <span className="text-accent-red ml-1">*</span>}
         </label>
@@ -37,10 +37,10 @@ export default function Input({
         <input
           id={inputId}
           className={`
-            w-full rounded-lg border bg-bg-card px-3 py-2.5 text-text-primary
+            w-full rounded-xl border border-surface bg-bg-card px-3 py-2.5 text-sm text-text-primary shadow-sm shadow-slate-900/[0.03]
             placeholder:text-text-muted
-            border-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/50
-            disabled:opacity-50 disabled:cursor-not-allowed
+            transition-all duration-200 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/15
+            disabled:cursor-not-allowed disabled:opacity-50
             ${leftIcon ? 'pl-10' : ''} ${rightIcon ? 'pr-10' : ''}
             ${error ? 'border-accent-red focus:border-accent-red focus:ring-accent-red/50' : ''}
             ${className}

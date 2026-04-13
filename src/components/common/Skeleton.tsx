@@ -6,7 +6,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '' }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse rounded bg-surface/70 ${className}`}
+      className={`animate-pulse rounded bg-slate-200 dark:bg-surface/70 ${className}`}
       aria-hidden="true"
     />
   );
@@ -17,7 +17,7 @@ export function StatCardsSkeleton() {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="bg-bg-card border border-surface rounded-xl p-5 space-y-3">
+        <div key={i} className="bg-bg-card border border-surface rounded-2xl p-5 space-y-3 shadow-sm shadow-slate-900/[0.03]">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-8 w-16" />
         </div>
@@ -31,7 +31,7 @@ export function CardListSkeleton({ count = 3 }: { count?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-bg-card border border-surface rounded-xl p-4 space-y-3">
+        <div key={i} className="bg-bg-card border border-surface rounded-2xl p-4 space-y-3 shadow-sm shadow-slate-900/[0.03]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-3/4" />

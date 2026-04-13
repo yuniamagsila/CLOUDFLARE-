@@ -9,16 +9,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-primary hover:bg-primary/90 text-white',
-  secondary: 'bg-surface hover:bg-surface/80 text-text-primary',
-  danger: 'bg-accent-red hover:bg-accent-red/90 text-white',
-  ghost: 'hover:bg-surface/50 text-text-muted hover:text-text-primary',
-  outline: 'border border-surface hover:border-primary text-text-primary hover:text-primary',
+  primary: 'bg-primary text-white shadow-sm shadow-primary/35 hover:bg-blue-600',
+  secondary: 'border border-surface bg-slate-50 text-text-primary hover:bg-slate-100 dark:bg-surface/60 dark:hover:bg-surface',
+  danger: 'bg-accent-red text-white shadow-sm shadow-accent-red/30 hover:bg-red-600',
+  ghost: 'text-text-muted hover:bg-slate-100 hover:text-text-primary dark:hover:bg-surface/60',
+  outline: 'border border-surface bg-transparent text-text-primary hover:border-primary/40 hover:bg-primary/5 hover:text-primary',
 };
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
+  sm: 'px-3 py-2 text-sm',
+  md: 'px-4 py-2.5 text-sm',
   lg: 'px-6 py-3 text-base',
 };
 
@@ -35,9 +35,9 @@ export default function Button({
   return (
     <button
       className={`
-        inline-flex items-center justify-center gap-2 rounded-lg font-medium
-        transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary/50
-        disabled:opacity-50 disabled:cursor-not-allowed
+        inline-flex items-center justify-center gap-2 rounded-xl font-semibold
+        transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/35 focus:ring-offset-2 focus:ring-offset-transparent
+        disabled:cursor-not-allowed disabled:opacity-50
         ${variants[variant]} ${sizes[size]} ${className}
       `}
       disabled={disabled || isLoading}
