@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Table from '../../components/ui/Table';
-import Pagination, { usePagination } from '../../components/ui/Pagination';
+import Pagination from '../../components/ui/Pagination';
 import { useAuditLogs } from '../../hooks/useAuditLogs';
+import { usePagination } from '../../hooks/usePagination';
 import { useDebounce } from '../../hooks/useDebounce';
 import { TableSkeleton } from '../../components/common/Skeleton';
 import type { AuditLog } from '../../types';

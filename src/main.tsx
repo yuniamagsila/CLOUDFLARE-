@@ -6,7 +6,7 @@ import { router } from './router';
 import { useAuthStore } from './store/authStore';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
-function App() {
+export function App() {
   const { restoreSession, isLoading } = useAuthStore();
 
   useEffect(() => {
