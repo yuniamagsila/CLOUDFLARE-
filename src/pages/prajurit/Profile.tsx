@@ -3,8 +3,10 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import { RoleBadge } from '../../components/common/Badge';
+import AttendanceHeatmap from '../../components/ui/AttendanceHeatmap';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
+import { useAttendance } from '../../hooks/useAttendance';
 import { supabase } from '../../lib/supabase';
 
 interface PersonalStats {
@@ -17,6 +19,7 @@ interface PersonalStats {
 export default function Profile() {
   const { user } = useAuthStore();
   const { showNotification } = useUIStore();
+  const { attendances } = useAttendance(user?.id);
 
   const [changingPin, setChangingPin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -173,6 +176,11 @@ export default function Profile() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Attendance Heatmap */}
+        <div className="bg-bg-card border border-surface rounded-xl p-6">
+          <AttendanceHeatmap attendances={attendances} />
         </div>
 
         {/* Change PIN */}

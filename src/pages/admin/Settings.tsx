@@ -1,8 +1,10 @@
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { useAuthStore } from '../../store/authStore';
+import { useUIStore } from '../../store/uiStore';
 
 export default function Settings() {
   const { user } = useAuthStore();
+  const { isDarkMode, toggleDarkMode } = useUIStore();
 
   return (
     <DashboardLayout title="Pengaturan Sistem">
@@ -23,6 +25,34 @@ export default function Settings() {
                 <span className="text-sm font-medium text-text-primary">{value}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Appearance */}
+        <div className="bg-bg-card border border-surface rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-text-primary mb-4">Tampilan</h2>
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Mode Gelap</p>
+              <p className="text-xs text-text-muted mt-0.5">
+                {isDarkMode ? 'Aktif — tampilan dengan latar gelap' : 'Nonaktif — tampilan dengan latar terang'}
+              </p>
+            </div>
+            <button
+              onClick={toggleDarkMode}
+              className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                isDarkMode ? 'bg-primary' : 'bg-surface'
+              }`}
+              aria-label="Toggle dark mode"
+              role="switch"
+              aria-checked={isDarkMode}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                  isDarkMode ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
           </div>
         </div>
 

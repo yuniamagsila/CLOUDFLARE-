@@ -112,6 +112,7 @@ export default function AttendanceReport() {
             <option value="dinas_luar">Dinas Luar</option>
           </select>
           <Button variant="secondary" onClick={handleExportCSV}>⬇ Export CSV</Button>
+          <Button variant="ghost" onClick={() => window.print()} data-print-hide>🖨 Cetak / PDF</Button>
         </div>
 
         {/* Summary cards */}

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 const NOTIFICATION_DURATION_MS = 4000;
+const DARK_MODE_KEY = 'karyo_dark_mode';
 
 interface Notification {
   message: string;
@@ -20,12 +21,36 @@ interface UIStore {
   clearNotification: () => void;
 }
 
+// Load persisted preference (default: dark)
+const loadDarkMode = (): boolean => {
+  try {
+    const stored = localStorage.getItem(DARK_MODE_KEY);
+    if (stored === null) return true; // default dark
+    return stored === 'true';
+  } catch {
+    return true;
+  }
+};
+
+const applyTheme = (isDark: boolean) => {
+  document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+};
+
 export const useUIStore = create<UIStore>((set) => ({
-  isDarkMode: true,
+  isDarkMode: loadDarkMode(),
   sidebarOpen: true,
   notification: null,
 
-  toggleDarkMode: () => set((state) => ({ isDarkMode: !state.isDarkMode })),
+  toggleDarkMode: () =>
+    set((state) => {
+      const next = !state.isDarkMode;
+      try {
+        localStorage.setItem(DARK_MODE_KEY, String(next));
+      } catch { /* ignore */ }
+      applyTheme(next);
+      return { isDarkMode: next };
+    }),
+
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarOpen: (open: boolean) => set({ sidebarOpen: open }),
 
@@ -36,3 +61,6 @@ export const useUIStore = create<UIStore>((set) => ({
 
   clearNotification: () => set({ notification: null }),
 }));
+
+// Apply theme on module load (before first render)
+applyTheme(loadDarkMode());
