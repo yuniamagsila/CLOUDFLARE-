@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import type { Attendance } from '../types';
 
-const mockSupabase = supabase as {
+const mockSupabase = supabase as unknown as {
   from: ReturnType<typeof vi.fn>;
   channel: ReturnType<typeof vi.fn>;
   removeChannel: ReturnType<typeof vi.fn>;

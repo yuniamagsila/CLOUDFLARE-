@@ -4,7 +4,7 @@ import { useUsers } from '../hooks/useUsers';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 
-const mockSupabase = supabase as {
+const mockSupabase = supabase as unknown as {
   from: ReturnType<typeof vi.fn>;
   rpc: ReturnType<typeof vi.fn>;
 };
