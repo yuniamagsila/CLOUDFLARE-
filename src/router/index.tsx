@@ -9,14 +9,22 @@ const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
 const UserManagement = lazy(() => import('../pages/admin/UserManagement'));
 const AuditLog = lazy(() => import('../pages/admin/AuditLog'));
 const Logistics = lazy(() => import('../pages/admin/Logistics'));
+const Documents = lazy(() => import('../pages/admin/Documents'));
+const Announcements = lazy(() => import('../pages/admin/Announcements'));
+const ShiftSchedule = lazy(() => import('../pages/admin/ShiftSchedule'));
+const AttendanceReport = lazy(() => import('../pages/admin/AttendanceReport'));
 const Settings = lazy(() => import('../pages/admin/Settings'));
 const KomandanDashboard = lazy(() => import('../pages/komandan/KomandanDashboard'));
 const TaskManagement = lazy(() => import('../pages/komandan/TaskManagement'));
 const Personnel = lazy(() => import('../pages/komandan/Personnel'));
 const Reports = lazy(() => import('../pages/komandan/Reports'));
+const Evaluation = lazy(() => import('../pages/komandan/Evaluation'));
+const KomandanAttendance = lazy(() => import('../pages/komandan/KomandanAttendance'));
 const PrajuritDashboard = lazy(() => import('../pages/prajurit/PrajuritDashboard'));
 const MyTasks = lazy(() => import('../pages/prajurit/MyTasks'));
 const Attendance = lazy(() => import('../pages/prajurit/Attendance'));
+const Messages = lazy(() => import('../pages/prajurit/Messages'));
+const LeaveRequest = lazy(() => import('../pages/prajurit/LeaveRequest'));
 const Profile = lazy(() => import('../pages/prajurit/Profile'));
 
 const wrap = (element: React.ReactNode) => (
@@ -40,6 +48,10 @@ export const router = createBrowserRouter([
       { path: '/admin/users', element: wrap(<UserManagement />) },
       { path: '/admin/audit', element: wrap(<AuditLog />) },
       { path: '/admin/logistics', element: wrap(<Logistics />) },
+      { path: '/admin/documents', element: wrap(<Documents />) },
+      { path: '/admin/announcements', element: wrap(<Announcements />) },
+      { path: '/admin/schedule', element: wrap(<ShiftSchedule />) },
+      { path: '/admin/attendance', element: wrap(<AttendanceReport />) },
       { path: '/admin/settings', element: wrap(<Settings />) },
     ],
   },
@@ -51,6 +63,8 @@ export const router = createBrowserRouter([
       { path: '/komandan/tasks', element: wrap(<TaskManagement />) },
       { path: '/komandan/personnel', element: wrap(<Personnel />) },
       { path: '/komandan/reports', element: wrap(<Reports />) },
+      { path: '/komandan/evaluation', element: wrap(<Evaluation />) },
+      { path: '/komandan/attendance', element: wrap(<KomandanAttendance />) },
     ],
   },
   // Prajurit routes
@@ -60,6 +74,8 @@ export const router = createBrowserRouter([
       { path: '/prajurit/dashboard', element: wrap(<PrajuritDashboard />) },
       { path: '/prajurit/tasks', element: wrap(<MyTasks />) },
       { path: '/prajurit/attendance', element: wrap(<Attendance />) },
+      { path: '/prajurit/messages', element: wrap(<Messages />) },
+      { path: '/prajurit/leave', element: wrap(<LeaveRequest />) },
       { path: '/prajurit/profile', element: wrap(<Profile />) },
     ],
   },
