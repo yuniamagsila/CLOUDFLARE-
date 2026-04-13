@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import { useUIStore } from '../store/uiStore';
 
 const PERM_ASKED_KEY = 'karyo_notif_asked';
 
@@ -10,6 +11,7 @@ const PERM_ASKED_KEY = 'karyo_notif_asked';
  */
 export function useNotifications() {
   const { user } = useAuthStore();
+  const { notificationsEnabled } = useUIStore();
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const requestPermission = useCallback(async () => {
@@ -26,6 +28,7 @@ export function useNotifications() {
   }, []);
 
   const sendNotification = useCallback((title: string, body: string, icon?: string) => {
+    if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     try {
       const n = new Notification(title, {
@@ -42,7 +45,7 @@ export function useNotifications() {
   }, []);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || !notificationsEnabled) return;
 
     void requestPermission();
 
@@ -99,7 +102,7 @@ export function useNotifications() {
         channelRef.current = null;
       }
     };
-  }, [user?.id, requestPermission, sendNotification]);
+  }, [user?.id, notificationsEnabled, requestPermission, sendNotification]);
 
   return { sendNotification };
 }
