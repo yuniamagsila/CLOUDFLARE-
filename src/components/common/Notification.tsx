@@ -1,4 +1,5 @@
 import { useUIStore } from '../../store/uiStore';
+import { icons } from '../../icons';
 
 export default function Notification() {
   const { notification, clearNotification } = useUIStore();
@@ -12,11 +13,11 @@ export default function Notification() {
     warning: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-accent-gold/20 dark:border-accent-gold dark:text-accent-gold',
   };
 
-  const icons = {
-    success: '✓',
-    error: '✕',
-    info: 'ℹ',
-    warning: '⚠',
+  const iconMap = {
+    success: icons.check || (() => <span>✓</span>),
+    error: icons.x || (() => <span>✕</span>),
+    info: icons.info || (() => <span>ℹ</span>),
+    warning: icons.warning || (() => <span>⚠</span>),
   };
 
   return (
@@ -24,14 +25,16 @@ export default function Notification() {
       <div
         className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg shadow-slate-900/10 backdrop-blur-sm ${colors[notification.type]}`}
       >
-        <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-lg bg-white/70 text-sm font-bold dark:bg-white/10">{icons[notification.type]}</span>
+        <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-lg bg-white/70 text-sm font-bold dark:bg-white/10">
+          {iconMap[notification.type] && <iconMap[notification.type] className="w-5 h-5" aria-hidden="true" />}
+        </span>
         <p className="text-sm font-medium flex-1">{notification.message}</p>
         <button
           onClick={clearNotification}
           className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"
           aria-label="Tutup notifikasi"
         >
-          ✕
+          {icons.x ? <icons.x className="w-4 h-4" aria-hidden="true" /> : <span>✕</span>}
         </button>
       </div>
     </div>

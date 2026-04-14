@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { icons } from '../../icons';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
@@ -10,7 +11,7 @@ interface SearchResult {
   title: string;
   subtitle: string;
   href: string;
-  icon: string;
+  icon: keyof typeof icons;
 }
 
 export default function GlobalSearch() {
@@ -61,7 +62,7 @@ export default function GlobalSearch() {
           title: t.judul,
           subtitle: `Status: ${t.status}${t.satuan ? ` · ${t.satuan}` : ''}`,
           href: user.role === 'prajurit' ? '/prajurit/tasks' : '/komandan/tasks',
-          icon: '📋',
+          icon: 'clipboard',
         })),
         ...((usersRes.data ?? []) as { id: string; nama: string; nrp: string; pangkat: string | null; role: string }[]).map((u) => ({
           id: u.id,
@@ -69,7 +70,7 @@ export default function GlobalSearch() {
           title: u.nama,
           subtitle: `${u.nrp}${u.pangkat ? ` · ${u.pangkat}` : ''} · ${u.role}`,
           href: user.role === 'admin' ? '/admin/users' : '/komandan/personnel',
-          icon: '🪖',
+          icon: 'usersRound',
         })),
         ...((announcementsRes.data ?? []) as { id: string; judul: string; isi: string }[]).map((a) => ({
           id: a.id,
@@ -77,7 +78,7 @@ export default function GlobalSearch() {
           title: a.judul,
           subtitle: a.isi.slice(0, 80),
           href: user.role === 'admin' ? '/admin/announcements' : `/${user.role}/dashboard`,
-          icon: '📢',
+          icon: 'announcement',
         })),
       ];
       setResults(combined);
@@ -182,7 +183,7 @@ export default function GlobalSearch() {
                 onClick={() => handleSelect(r)}
                 className="w-full text-left flex items-start gap-3 px-4 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-surface/55"
               >
-                <span className="text-lg flex-shrink-0">{r.icon}</span>
+                <span className="text-lg flex-shrink-0"><icons[r.icon] className="w-5 h-5" aria-hidden="true" /></span>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-text-primary truncate">{r.title}</p>
                   <p className="text-xs text-text-muted truncate mt-0.5">{r.subtitle}</p>

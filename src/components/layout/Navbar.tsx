@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut } from 'lucide-react';
+import { icons } from '../../icons';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { useMessages } from '../../hooks/useMessages';
@@ -67,9 +67,13 @@ export default function Navbar({ title }: NavbarProps) {
           className="lg:hidden rounded-xl p-2 text-text-muted transition-colors hover:bg-slate-100 hover:text-text-primary dark:hover:bg-surface/75"
           aria-label="Toggle sidebar"
         >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          {icons.menu ? (
+            <icons.menu className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
 
         <div className="min-w-0 flex-1">
@@ -96,9 +100,7 @@ export default function Navbar({ title }: NavbarProps) {
                 if (user?.role === 'prajurit') navigate('/prajurit/messages');
               }}
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.17V11a6 6 0 1 0-12 0v3.17a2 2 0 0 1-.6 1.43L4 17h5m6 0a3 3 0 1 1-6 0m6 0H9" />
-              </svg>
+              <icons.notification className="h-4 w-4" aria-hidden="true" />
             </button>
             {unreadCount > 0 && (
               <span className="pointer-events-none absolute -right-1 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-accent-red px-0.5 text-[10px] font-bold text-white">
@@ -115,15 +117,9 @@ export default function Navbar({ title }: NavbarProps) {
             title={isDarkMode ? 'Mode Terang' : 'Mode Gelap'}
           >
             {isDarkMode ? (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.7.7M5.63 18.37l-.7.7m0-12.74.7.7M18.37 18.37l.7.7M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7z" />
-              </svg>
+              icons.sun ? <icons.sun className="h-4 w-4" aria-hidden="true" /> : <span>🌞</span>
             ) : (
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
+              icons.moon ? <icons.moon className="h-4 w-4" aria-hidden="true" /> : <span>🌙</span>
             )}
           </button>
 
@@ -177,7 +173,7 @@ export default function Navbar({ title }: NavbarProps) {
                   onClick={() => setIsAvatarDropdownOpen(false)}
                   className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-text-primary transition-colors hover:bg-slate-100 dark:hover:bg-surface/60"
                 >
-                  <User size={14} aria-hidden="true" className="text-text-muted" />
+                  <icons.user className="w-4 h-4 text-text-muted" aria-hidden="true" />
                   Profil Saya
                 </Link>
               )}
@@ -190,7 +186,7 @@ export default function Navbar({ title }: NavbarProps) {
                   onClick={() => setIsAvatarDropdownOpen(false)}
                   className="flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-text-primary transition-colors hover:bg-slate-100 dark:hover:bg-surface/60"
                 >
-                  <Settings size={14} aria-hidden="true" className="text-text-muted" />
+                  <icons.settings className="w-4 h-4 text-text-muted" aria-hidden="true" />
                   Pengaturan
                 </Link>
               )}
@@ -203,7 +199,7 @@ export default function Navbar({ title }: NavbarProps) {
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-accent-red transition-colors hover:bg-accent-red/10"
               >
-                <LogOut size={14} aria-hidden="true" />
+                <icons.logout className="w-4 h-4" aria-hidden="true" />
                 Keluar
               </button>
             </div>

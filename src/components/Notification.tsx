@@ -1,10 +1,12 @@
-import React from 'react';
 
-interface NotificationProps {
+
+
+interface Props {
   message: string;
-  type?: 'success' | 'error' | 'info' | 'warning';
+  type?: string;
   onClose?: () => void;
 }
+
 
 const colorMap = {
   success: 'bg-green-500',
@@ -13,7 +15,7 @@ const colorMap = {
   warning: 'bg-yellow-500',
 };
 
-const Notification: React.FC<NotificationProps> = ({ message, type = 'info', onClose }) => (
+const Notification: React.FC<Props> = ({ message, type = 'info', onClose }) => (
   <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded text-white shadow-lg ${colorMap[type]}`}
     role="alert">
     <span>{message}</span>
