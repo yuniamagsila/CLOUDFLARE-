@@ -1,8 +1,44 @@
+import { useRef, useState } from 'react';
+import { Download, Upload, AlertTriangle } from 'lucide-react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
+import Modal from '../../components/common/Modal';
 import PageHeader from '../../components/ui/PageHeader';
+import { supabase } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
+
+/** Tables included in backup/restore. Ordered to satisfy FK constraints on restore. */
+const BACKUP_TABLES = [
+  'users',
+  'announcements',
+  'tasks',
+  'attendance',
+  'shift_schedules',
+  'leave_requests',
+  'logistics_requests',
+  'messages',
+] as const;
+
+type BackupTable = (typeof BACKUP_TABLES)[number];
+
+interface BackupData {
+  version: string;
+  exported_at: string;
+  satuan: string;
+  tables: Partial<Record<BackupTable, unknown[]>>;
+}
+
+/** Download a JS object as a .json file */
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function Settings() {
   const { user } = useAuthStore();
@@ -20,7 +56,85 @@ export default function Settings() {
     setDashboardAutoRefreshMinutes,
     sidebarOpen,
     setSidebarOpen,
+    showNotification,
   } = useUIStore();
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restorePreview, setRestorePreview] = useState<BackupData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /** Export all tables as a single JSON backup file */
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const tables: Partial<Record<BackupTable, unknown[]>> = {};
+      for (const table of BACKUP_TABLES) {
+        const { data, error } = await supabase.from(table).select('*').order('created_at' as never);
+        if (error) throw new Error(`Gagal mengambil tabel ${table}: ${error.message}`);
+        tables[table] = data ?? [];
+      }
+      const backup: BackupData = {
+        version: '1.0',
+        exported_at: new Date().toISOString(),
+        satuan: user?.satuan ?? '—',
+        tables,
+      };
+      const filename = `karyo_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      downloadJson(backup, filename);
+      showNotification('Backup berhasil diunduh', 'success');
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Gagal membuat backup', 'error');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  /** User selects a .json file — parse & preview it */
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string) as BackupData;
+        if (!parsed.version || !parsed.tables) throw new Error('Format file tidak valid');
+        setRestorePreview(parsed);
+        setShowRestoreModal(true);
+      } catch {
+        showNotification('File backup tidak valid atau rusak', 'error');
+        
+      }
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /** Upsert all rows from backup file, table by table */
+  const handleRestore = async () => {
+    if (!restorePreview) return;
+    setIsRestoring(true);
+    try {
+      for (const table of BACKUP_TABLES) {
+        const rows = restorePreview.tables[table];
+        if (!rows?.length) continue;
+        const { error } = await supabase.from(table).upsert(rows as never[], { onConflict: 'id' });
+        if (error) throw new Error(`Gagal merestore tabel ${table}: ${error.message}`);
+      }
+      showNotification('Data berhasil dipulihkan dari backup', 'success');
+      setShowRestoreModal(false);
+      setRestorePreview(null);
+      
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Gagal merestore data', 'error');
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
 
   const restoreRecommendedDefaults = () => {
     if (!isDarkMode) toggleDarkMode();
@@ -240,12 +354,132 @@ export default function Settings() {
           </div>
         </div>
 
+        {/* ── Backup & Restore ── */}
+        <div className="app-card p-6">
+          <h2 className="mb-1 text-lg font-bold tracking-tight text-text-primary">Backup &amp; Restore Data</h2>
+          <p className="mb-5 text-sm text-text-muted">
+            Ekspor seluruh data operasional ke file JSON untuk keperluan pencadangan, atau pulihkan data dari file backup sebelumnya.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Export */}
+            <div className="flex flex-col gap-3 rounded-xl border border-surface/70 bg-surface/20 p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl bg-primary/15">
+                  <Download size={16} className="text-primary" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-sm">Ekspor Backup</p>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Unduh semua data ({BACKUP_TABLES.join(', ')}) sebagai file <code className="font-mono">.json</code>.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { void handleExport(); }}
+                disabled={isExporting}
+                className="self-start"
+              >
+                {isExporting ? 'Mengekspor…' : '⬇ Unduh Backup'}
+              </Button>
+            </div>
+
+            {/* Import / Restore */}
+            <div className="flex flex-col gap-3 rounded-xl border border-surface/70 bg-surface/20 p-4">
+              <div className="flex items-start gap-3">
+                <div className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl bg-accent-gold/15">
+                  <Upload size={16} className="text-accent-gold" aria-hidden="true" />
+                </div>
+                <div>
+                  <p className="font-semibold text-text-primary text-sm">Pulihkan dari Backup</p>
+                  <p className="text-xs text-text-muted mt-0.5">
+                    Unggah file <code className="font-mono">.json</code> hasil ekspor sebelumnya untuk memulihkan data.
+                  </p>
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileSelect}
+                className="hidden"
+                aria-label="Pilih file backup"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isRestoring}
+                className="self-start"
+              >
+                ⬆ Pilih File Backup
+              </Button>
+            </div>
+          </div>
+          <p className="mt-4 text-xs text-text-muted">
+            ℹ Restore menggunakan upsert — data yang sudah ada diperbarui, data baru ditambahkan. Tidak ada data yang dihapus.
+          </p>
+        </div>
+
         <div className="rounded-xl border border-accent-gold/35 bg-accent-gold/10 p-4">
           <p className="text-sm text-accent-gold">
             ⚠ Pengaturan lanjutan (konfigurasi Supabase, RLS policy, dll.) dikelola langsung melalui Supabase Dashboard.
           </p>
         </div>
       </div>
+
+      {/* ── Restore confirmation modal ── */}
+      {showRestoreModal && restorePreview && (
+        <Modal
+          isOpen={showRestoreModal}
+          onClose={() => { setShowRestoreModal(false); setRestorePreview(null);  }}
+          title="Konfirmasi Pulihkan Data"
+          footer={
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => { setShowRestoreModal(false); setRestorePreview(null);  }}
+                disabled={isRestoring}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => { void handleRestore(); }}
+                disabled={isRestoring}
+              >
+                {isRestoring ? 'Memulihkan…' : 'Ya, Pulihkan Data'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 rounded-xl border border-accent-gold/40 bg-accent-gold/10 p-4">
+              <AlertTriangle size={18} className="mt-0.5 flex-shrink-0 text-accent-gold" aria-hidden="true" />
+              <p className="text-sm text-accent-gold">
+                Operasi ini akan menimpa (upsert) data yang ada dengan isi file backup. Pastikan file berasal dari sumber terpercaya.
+              </p>
+            </div>
+            <div className="space-y-2 text-sm">
+              {[
+                { label: 'Diekspor pada', value: new Date(restorePreview.exported_at).toLocaleString('id-ID') },
+                { label: 'Versi backup', value: `v${restorePreview.version}` },
+                { label: 'Satuan', value: restorePreview.satuan },
+                ...BACKUP_TABLES.map((t) => ({
+                  label: t,
+                  value: `${restorePreview.tables[t]?.length ?? 0} baris`,
+                })),
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-center justify-between gap-4 border-b border-surface/70 py-1.5 last:border-0">
+                  <span className="font-mono text-xs text-text-muted">{label}</span>
+                  <span className="text-xs font-semibold text-text-primary">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

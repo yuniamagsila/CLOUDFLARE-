@@ -44,13 +44,10 @@ export function useAttendance(userId?: string) {
     if (!targetUserId) throw new Error('User tidak ditemukan');
     if (todayAttendance?.check_in) throw new Error('Sudah check-in hari ini');
 
-    const { error } = await supabase.from('attendance').upsert({
-      user_id: targetUserId,
-      tanggal: today,
-      check_in: new Date().toISOString(),
-      status: 'hadir',
-    });
-    if (error) throw error;
+    // Use server_checkin RPC so the timestamp comes from the database
+    // server, preventing client-side clock manipulation.
+    const { error } = await supabase.rpc('server_checkin', { p_user_id: targetUserId });
+    if (error) throw new Error(error.message);
     await fetchAttendance();
   };
 
@@ -59,11 +56,9 @@ export function useAttendance(userId?: string) {
     if (!todayAttendance?.check_in) throw new Error('Belum check-in hari ini');
     if (todayAttendance.check_out) throw new Error('Sudah check-out hari ini');
 
-    const { error } = await supabase
-      .from('attendance')
-      .update({ check_out: new Date().toISOString() })
-      .eq('id', todayAttendance.id);
-    if (error) throw error;
+    // Use server_checkout RPC so the timestamp comes from the database server.
+    const { error } = await supabase.rpc('server_checkout', { p_user_id: targetUserId });
+    if (error) throw new Error(error.message);
     await fetchAttendance();
   };
 

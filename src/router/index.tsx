@@ -20,6 +20,7 @@ const Personnel = lazy(() => import('../pages/komandan/Personnel'));
 const Reports = lazy(() => import('../pages/komandan/Reports'));
 const Evaluation = lazy(() => import('../pages/komandan/Evaluation'));
 const KomandanAttendance = lazy(() => import('../pages/komandan/KomandanAttendance'));
+const LogisticsRequest = lazy(() => import('../pages/komandan/LogisticsRequest'));
 const PrajuritDashboard = lazy(() => import('../pages/prajurit/PrajuritDashboard'));
 const MyTasks = lazy(() => import('../pages/prajurit/MyTasks'));
 const Attendance = lazy(() => import('../pages/prajurit/Attendance'));
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: '/komandan/reports', element: wrap(<Reports />) },
       { path: '/komandan/evaluation', element: wrap(<Evaluation />) },
       { path: '/komandan/attendance', element: wrap(<KomandanAttendance />) },
+      { path: '/komandan/logistics-request', element: wrap(<LogisticsRequest />) },
     ],
   },
   // Prajurit routes

@@ -1,35 +1,39 @@
 import { NavLink } from 'react-router-dom';
+import {
+  LayoutDashboard, CheckSquare, CalendarDays, Megaphone,
+  UserCheck, Users, Package, Settings, BarChart2,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import type { Role } from '../../types';
 
 interface BottomTabItem {
   path: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 /** Mobile bottom tab: show max 5 primary nav items per role (spec §10.2) */
 const BOTTOM_TABS: Record<Role, BottomTabItem[]> = {
   admin: [
-    { path: '/admin/dashboard', label: 'Home', icon: '⊞' },
-    { path: '/admin/users', label: 'Personel', icon: '👥' },
-    { path: '/admin/logistics', label: 'Logistik', icon: '📦' },
-    { path: '/admin/announcements', label: 'Pengumuman', icon: '📢' },
-    { path: '/admin/settings', label: 'Setelan', icon: '⚙' },
+    { path: '/admin/dashboard',     label: 'Beranda',    icon: <LayoutDashboard size={20} aria-hidden="true" /> },
+    { path: '/admin/users',         label: 'Personel',   icon: <Users size={20} aria-hidden="true" /> },
+    { path: '/admin/logistics',     label: 'Logistik',   icon: <Package size={20} aria-hidden="true" /> },
+    { path: '/admin/announcements', label: 'Pengumuman', icon: <Megaphone size={20} aria-hidden="true" /> },
+    { path: '/admin/settings',      label: 'Setelan',    icon: <Settings size={20} aria-hidden="true" /> },
   ],
   komandan: [
-    { path: '/komandan/dashboard', label: 'Home', icon: '⊞' },
-    { path: '/komandan/tasks', label: 'Tugas', icon: '✓' },
-    { path: '/komandan/personnel', label: 'Personel', icon: '👥' },
-    { path: '/komandan/attendance', label: 'Hadir', icon: '📅' },
-    { path: '/komandan/reports', label: 'Laporan', icon: '📊' },
+    { path: '/komandan/dashboard',  label: 'Beranda',   icon: <LayoutDashboard size={20} aria-hidden="true" /> },
+    { path: '/komandan/tasks',      label: 'Tugas',     icon: <CheckSquare size={20} aria-hidden="true" /> },
+    { path: '/komandan/personnel',  label: 'Personel',  icon: <Users size={20} aria-hidden="true" /> },
+    { path: '/komandan/attendance', label: 'Hadir',     icon: <CalendarDays size={20} aria-hidden="true" /> },
+    { path: '/komandan/reports',    label: 'Laporan',   icon: <BarChart2 size={20} aria-hidden="true" /> },
   ],
   prajurit: [
-    { path: '/prajurit/dashboard', label: 'Home', icon: '⊞' },
-    { path: '/prajurit/tasks', label: 'Tugas', icon: '✓' },
-    { path: '/prajurit/attendance', label: 'Absensi', icon: '📅' },
-    { path: '/prajurit/messages', label: 'Pesan', icon: '✉' },
-    { path: '/prajurit/profile', label: 'Profil', icon: '👤' },
+    { path: '/prajurit/dashboard',  label: 'Beranda', icon: <LayoutDashboard size={20} aria-hidden="true" /> },
+    { path: '/prajurit/tasks',      label: 'Tugas',   icon: <CheckSquare size={20} aria-hidden="true" /> },
+    { path: '/prajurit/attendance', label: 'Absensi', icon: <CalendarDays size={20} aria-hidden="true" /> },
+    { path: '/prajurit/messages',   label: 'Pesan',   icon: <Megaphone size={20} aria-hidden="true" /> },
+    { path: '/prajurit/profile',    label: 'Profil',  icon: <UserCheck size={20} aria-hidden="true" /> },
   ],
 };
 

@@ -1,4 +1,10 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  LayoutDashboard, Users, Package, FileText, Megaphone,
+  CalendarDays, ClipboardCheck, ScrollText, Settings,
+  CheckSquare, UserCheck, BarChart2, NotebookPen, LogOut,
+  ClipboardList,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import type { Role } from '../../types';
@@ -6,36 +12,37 @@ import type { Role } from '../../types';
 interface NavItem {
   path: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const NAV_ITEMS: Record<Role, NavItem[]> = {
   admin: [
-    { path: '/admin/dashboard', label: 'Control Center', icon: '⊞' },
-    { path: '/admin/users', label: 'Personel', icon: '👥' },
-    { path: '/admin/logistics', label: 'Logistik', icon: '📦' },
-    { path: '/admin/documents', label: 'Dokumen', icon: '📄' },
-    { path: '/admin/announcements', label: 'Pengumuman', icon: '📢' },
-    { path: '/admin/schedule', label: 'Jadwal Shift', icon: '📅' },
-    { path: '/admin/attendance', label: 'Rekap Absensi', icon: '✅' },
-    { path: '/admin/audit', label: 'Audit Log', icon: '📋' },
-    { path: '/admin/settings', label: 'Pengaturan', icon: '⚙' },
+    { path: '/admin/dashboard',     label: 'Pusat Kendali',  icon: <LayoutDashboard size={16} aria-hidden="true" /> },
+    { path: '/admin/users',         label: 'Personel',       icon: <Users size={16} aria-hidden="true" /> },
+    { path: '/admin/logistics',     label: 'Logistik',       icon: <Package size={16} aria-hidden="true" /> },
+    { path: '/admin/documents',     label: 'Dokumen',        icon: <FileText size={16} aria-hidden="true" /> },
+    { path: '/admin/announcements', label: 'Pengumuman',     icon: <Megaphone size={16} aria-hidden="true" /> },
+    { path: '/admin/schedule',      label: 'Jadwal Shift',   icon: <CalendarDays size={16} aria-hidden="true" /> },
+    { path: '/admin/attendance',    label: 'Rekap Absensi',  icon: <ClipboardCheck size={16} aria-hidden="true" /> },
+    { path: '/admin/audit',         label: 'Audit Log',      icon: <ScrollText size={16} aria-hidden="true" /> },
+    { path: '/admin/settings',      label: 'Pengaturan',     icon: <Settings size={16} aria-hidden="true" /> },
   ],
   komandan: [
-    { path: '/komandan/dashboard', label: 'Ops Center', icon: '⊞' },
-    { path: '/komandan/tasks', label: 'Tugas', icon: '✓' },
-    { path: '/komandan/personnel', label: 'Personel', icon: '👥' },
-    { path: '/komandan/attendance', label: 'Kehadiran', icon: '📅' },
-    { path: '/komandan/evaluation', label: 'Evaluasi', icon: '📝' },
-    { path: '/komandan/reports', label: 'Laporan', icon: '📊' },
+    { path: '/komandan/dashboard',          label: 'Pusat Operasi',       icon: <LayoutDashboard size={16} aria-hidden="true" /> },
+    { path: '/komandan/tasks',              label: 'Tugas',                icon: <CheckSquare size={16} aria-hidden="true" /> },
+    { path: '/komandan/personnel',          label: 'Personel',             icon: <Users size={16} aria-hidden="true" /> },
+    { path: '/komandan/attendance',         label: 'Kehadiran',            icon: <CalendarDays size={16} aria-hidden="true" /> },
+    { path: '/komandan/evaluation',         label: 'Evaluasi',             icon: <NotebookPen size={16} aria-hidden="true" /> },
+    { path: '/komandan/reports',            label: 'Laporan',              icon: <BarChart2 size={16} aria-hidden="true" /> },
+    { path: '/komandan/logistics-request',  label: 'Permintaan Logistik',  icon: <ClipboardList size={16} aria-hidden="true" /> },
   ],
   prajurit: [
-    { path: '/prajurit/dashboard', label: 'Dashboard', icon: '⊞' },
-    { path: '/prajurit/tasks', label: 'Tugas Saya', icon: '✓' },
-    { path: '/prajurit/attendance', label: 'Absensi', icon: '📅' },
-    { path: '/prajurit/messages', label: 'Pesan', icon: '✉' },
-    { path: '/prajurit/leave', label: 'Permohonan Izin', icon: '🏖' },
-    { path: '/prajurit/profile', label: 'Profil', icon: '👤' },
+    { path: '/prajurit/dashboard',  label: 'Beranda',           icon: <LayoutDashboard size={16} aria-hidden="true" /> },
+    { path: '/prajurit/tasks',      label: 'Tugas Saya',        icon: <CheckSquare size={16} aria-hidden="true" /> },
+    { path: '/prajurit/attendance', label: 'Absensi',           icon: <CalendarDays size={16} aria-hidden="true" /> },
+    { path: '/prajurit/messages',   label: 'Pesan',             icon: <Megaphone size={16} aria-hidden="true" /> },
+    { path: '/prajurit/leave',      label: 'Permohonan Izin',   icon: <UserCheck size={16} aria-hidden="true" /> },
+    { path: '/prajurit/profile',    label: 'Profil',            icon: <Users size={16} aria-hidden="true" /> },
   ],
 };
 
@@ -93,9 +100,17 @@ export default function Sidebar() {
         {/* User info */}
         <div className="border-b border-surface/80 px-4 py-4">
           <div className="flex items-center gap-3 rounded-2xl border border-surface/70 bg-slate-50/70 p-3 dark:bg-surface/35">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 font-bold text-primary">
-              {user.nama.charAt(0).toUpperCase()}
-            </div>
+            {user.foto_url ? (
+              <img
+                src={user.foto_url}
+                alt={user.nama}
+                className="h-10 w-10 rounded-xl object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 font-bold text-primary flex-shrink-0">
+                {user.nama.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold text-text-primary">{user.nama}</div>
               <div className="truncate text-xs text-text-muted">
@@ -124,7 +139,7 @@ export default function Sidebar() {
                 if (window.innerWidth < 1024) setSidebarOpen(false);
               }}
             >
-              <span className="grid h-6 w-6 place-items-center rounded-lg bg-black/[0.04] text-center text-sm dark:bg-white/[0.06]">{item.icon}</span>
+              <span className="grid h-6 w-6 place-items-center rounded-lg bg-black/[0.04] text-center dark:bg-white/[0.06]">{item.icon}</span>
               {item.label}
             </NavLink>
           ))}
@@ -136,7 +151,7 @@ export default function Sidebar() {
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-accent-red transition-colors hover:bg-accent-red/10"
           >
-            <span className="grid h-6 w-6 place-items-center rounded-lg bg-accent-red/10 text-center text-sm">⏻</span>
+            <span className="grid h-6 w-6 place-items-center rounded-lg bg-accent-red/10 text-center text-sm"><LogOut size={14} aria-hidden="true" /></span>
             Keluar
           </button>
         </div>

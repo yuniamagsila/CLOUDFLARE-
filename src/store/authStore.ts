@@ -9,6 +9,7 @@ interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
   login: (nrp: string, pin: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -52,6 +53,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
 
   clearError: () => set({ error: null }),
@@ -142,7 +144,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     set({ isLoading: true });
     const session = loadSession();
     if (!session) {
-      set({ isLoading: false });
+      set({ isLoading: false, isInitialized: true });
       return;
     }
     try {
@@ -155,15 +157,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       if (error || !userData) {
         clearSession();
-        set({ isLoading: false });
+        set({ isLoading: false, isInitialized: true });
         return;
       }
 
       const user = userData as User;
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({ user, isAuthenticated: true, isLoading: false, isInitialized: true });
     } catch {
       clearSession();
-      set({ isLoading: false });
+      set({ isLoading: false, isInitialized: true });
     }
   },
 

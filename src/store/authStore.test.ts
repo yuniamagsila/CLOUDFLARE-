@@ -3,7 +3,7 @@ import { act } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { supabase } from '../lib/supabase';
 
-const mockSupabase = supabase as {
+const mockSupabase = supabase as unknown as {
   from: ReturnType<typeof vi.fn>;
   rpc: ReturnType<typeof vi.fn>;
 };
