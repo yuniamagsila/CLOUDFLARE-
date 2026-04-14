@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act } from 'react';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore, saveSession } from '../store/authStore';
 import { supabase } from '../lib/supabase';
+import type { Role } from '../types';
 
 const mockSupabase = supabase as unknown as {
   from: ReturnType<typeof vi.fn>;
@@ -25,16 +26,17 @@ function buildQuery(result: { data: unknown; error: unknown }) {
 
 const SESSION_KEY = 'karyo_session';
 
-function makeValidSession(userId = 'u1', role = 'admin') {
+// Session helpers that use the real AES-GCM encryption so tests match production behaviour.
+async function makeValidEncryptedSession(userId = 'u1', role: Role = 'admin') {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 8);
-  return JSON.stringify({ user_id: userId, role, expires_at: expiresAt.toISOString() });
+  await saveSession({ user_id: userId, role, expires_at: expiresAt.toISOString() });
 }
 
-function makeExpiredSession() {
+async function makeExpiredEncryptedSession() {
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() - 1);
-  return JSON.stringify({ user_id: 'u1', role: 'admin', expires_at: expiresAt.toISOString() });
+  await saveSession({ user_id: 'u1', role: 'admin', expires_at: expiresAt.toISOString() });
 }
 
 const mockUser = {
@@ -74,7 +76,7 @@ describe('authStore', () => {
     });
 
     it('clears session and does not authenticate if session is expired', async () => {
-      localStorage.setItem(SESSION_KEY, makeExpiredSession());
+      await makeExpiredEncryptedSession();
       await act(async () => {
         await useAuthStore.getState().restoreSession();
       });
@@ -83,7 +85,7 @@ describe('authStore', () => {
     });
 
     it('clears session if user fetch fails', async () => {
-      localStorage.setItem(SESSION_KEY, makeValidSession());
+      await makeValidEncryptedSession();
       mockSupabase.from.mockReturnValue(buildQuery({ data: null, error: new Error('db error') }));
 
       await act(async () => {
@@ -94,17 +96,23 @@ describe('authStore', () => {
     });
 
     it('restores user and sets isAuthenticated when session is valid', async () => {
-      localStorage.setItem(SESSION_KEY, makeValidSession('u1', 'admin'));
+      await makeValidEncryptedSession('u1', 'admin');
       mockSupabase.from.mockReturnValue(buildQuery({ data: mockUser, error: null }));
+      mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
 
       await act(async () => {
         await useAuthStore.getState().restoreSession();
       });
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
       expect(useAuthStore.getState().user?.id).toBe('u1');
+      // Verify set_session_context was called with correct args
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('set_session_context', {
+        p_user_id: 'u1',
+        p_role: 'admin',
+      });
     });
 
-    it('handles malformed JSON session gracefully', async () => {
+    it('handles malformed session data gracefully', async () => {
       localStorage.setItem(SESSION_KEY, 'not-valid-json');
       await act(async () => {
         await useAuthStore.getState().restoreSession();
@@ -118,7 +126,7 @@ describe('authStore', () => {
   describe('logout', () => {
     it('clears user and session when logged in', async () => {
       useAuthStore.setState({ user: mockUser, isAuthenticated: true });
-      localStorage.setItem(SESSION_KEY, makeValidSession());
+      await makeValidEncryptedSession();
       const updateMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
       const insertMock = vi.fn().mockResolvedValue({ error: null });
       mockSupabase.from.mockReturnValue({ update: updateMock, insert: insertMock });
@@ -205,8 +213,10 @@ describe('authStore', () => {
     });
 
     it('authenticates on successful login', async () => {
-      // verify_user_pin returns a result
-      mockSupabase.rpc.mockResolvedValue({ data: [{ user_id: 'u1' }], error: null });
+      // verify_user_pin → user_id; set_session_context → void; increment_login_attempts unused
+      mockSupabase.rpc
+        .mockResolvedValueOnce({ data: [{ user_id: 'u1' }], error: null }) // verify_user_pin
+        .mockResolvedValue({ data: null, error: null });                    // set_session_context
       // Build a from mock that handles all chained calls
       const fromMock = {
         select: vi.fn().mockReturnThis(),
@@ -226,6 +236,11 @@ describe('authStore', () => {
       expect(useAuthStore.getState().isAuthenticated).toBe(true);
       expect(useAuthStore.getState().user?.id).toBe('u1');
       expect(localStorage.getItem('karyo_session')).not.toBeNull();
+      // Verify set_session_context was called
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('set_session_context', {
+        p_user_id: 'u1',
+        p_role: 'admin',
+      });
     });
   });
 });
