@@ -17,7 +17,10 @@ export function useUsers(options: UseUsersOptions = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      let query = supabase.from('users').select('*').order('nama');
+      let query = supabase
+        .from('users')
+        .select('id, nrp, nama, role, pangkat, jabatan, satuan, foto_url, is_active, is_online, login_attempts, locked_until, last_login, created_at, updated_at')
+        .order('nama');
 
       if (options.role) query = query.eq('role', options.role);
       if (options.satuan) query = query.eq('satuan', options.satuan);
