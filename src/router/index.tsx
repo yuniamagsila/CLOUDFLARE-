@@ -4,6 +4,11 @@ import ProtectedRoute from './ProtectedRoute';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 // Lazy-loaded pages
+
+// Contoh lazy import yang aman (case-sensitive, path relatif dari file ini, pastikan file ada):
+// const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
+// Jika error, cek penamaan file/folder (huruf besar/kecil harus sama persis)
+
 const Login = lazy(() => import('../pages/Login'));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
 const UserManagement = lazy(() => import('../pages/admin/UserManagement'));

@@ -2,7 +2,16 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+// Vite config untuk Netlify (React + TailwindCSS)
+// Checklist:
+// - base: '/' (wajib untuk Netlify)
+// - outputDir: 'dist' (default, pastikan tidak diubah)
+// - hash file aktif (default)
+// - sourcemap: false (opsional, default false)
+// - manualChunks: opsional, untuk optimasi
+
 export default defineConfig({
+  base: '/', // PENTING untuk Netlify agar path asset benar
   plugins: [
     react(),
     tailwindcss(),
@@ -20,6 +29,7 @@ export default defineConfig({
     },
   },
   build: {
+    outDir: 'dist', // default, pastikan tidak diubah
     target: 'es2020',
     sourcemap: false,
     rollupOptions: {
