@@ -3,6 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -24,7 +28,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
-    "@tailwindcss/oxide": "^4.2.2",
     "@tailwindcss/vite": "^4.1.4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
