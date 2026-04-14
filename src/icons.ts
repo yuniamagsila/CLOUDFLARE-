@@ -37,9 +37,21 @@ import {
   Clipboard,
   ClipboardEdit,
   ClipboardList as ClipboardListIcon,
+  Check,
+  X,
+  Info,
+  Menu,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
-export const icons = {
+export const icons: Record<string, import('react').ElementType> = {
+    check: Check,
+    x: X,
+    info: Info,
+    menu: Menu,
+    sun: Sun,
+    moon: Moon,
   dashboard: LayoutDashboard,
   users: Users,
   settings: Settings,
