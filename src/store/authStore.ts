@@ -27,7 +27,8 @@ interface AuthStore {
 
 const encodeBase64 = (data: Uint8Array | ArrayBuffer): string => {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
-  return btoa(String.fromCharCode(...bytes));
+  // Use Array.from to avoid spread-operator stack overflow on large buffers
+  return btoa(String.fromCharCode(...Array.from(bytes)));
 };
 
 const decodeBase64 = (str: string): Uint8Array =>
@@ -61,7 +62,13 @@ const loadStoredKey = async (): Promise<CryptoKey | null> => {
   }
 };
 
-// ── Session persistence (AES-GCM encrypted) ─────────────────────
+const makeSessionExpiry = (): string => {
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + SESSION_DURATION_HOURS);
+  return expiresAt.toISOString();
+};
+
+
 // The encryption key lives in sessionStorage (tab-scoped, cleared on tab
 // close) while the ciphertext lives in localStorage.  An XSS script that
 // can only exfiltrate localStorage cannot decrypt the session without also
@@ -175,9 +182,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         detail: { nrp, role: user.role },
       });
 
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + SESSION_DURATION_HOURS);
-      await saveSession({ user_id: userId, role: user.role, expires_at: expiresAt.toISOString() });
+      await saveSession({ user_id: userId, role: user.role, expires_at: makeSessionExpiry() });
       set({ user, isAuthenticated: true, isLoading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login gagal.';
