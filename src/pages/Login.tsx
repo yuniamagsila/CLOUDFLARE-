@@ -10,6 +10,7 @@ const ROLE_DEFAULT_PATH = {
   admin: '/admin/dashboard',
   komandan: '/komandan/dashboard',
   prajurit: '/prajurit/dashboard',
+  guard: '/guard',
 } as const;
 
 export default function Login() {
@@ -24,7 +25,8 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate(ROLE_DEFAULT_PATH[user.role], { replace: true });
+      // @ts-ignore
+      navigate(ROLE_DEFAULT_PATH[user.role] || '/login', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 

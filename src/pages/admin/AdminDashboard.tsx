@@ -34,6 +34,7 @@ const actionLabels: Record<string, string> = {
 const quickLinks = [
   { href: '/admin/users', icon: '👥', title: 'Personel', desc: 'CRUD user & reset PIN' },
   { href: '/admin/logistics', icon: '📦', title: 'Logistik', desc: 'Inventaris perlengkapan' },
+  { href: '/admin/gatepass-monitor', icon: '🛂', title: 'Gate Pass', desc: 'Monitoring keluar/masuk batalion' },
   { href: '/admin/documents', icon: '📄', title: 'Dokumen', desc: 'Arsip & unduh dokumen' },
   { href: '/admin/announcements', icon: '📢', title: 'Pengumuman', desc: 'Broadcast & pin' },
   { href: '/admin/schedule', icon: '📅', title: 'Jadwal Shift', desc: 'Atur shift personel' },
@@ -179,10 +180,29 @@ export default function AdminDashboard() {
     ? Math.round((stats.absensiMasuk / stats.absensiHariIni) * 100)
     : 0;
 
+  const [gatePassStats, setGatePassStats] = useState<{ out: number; overdue: number }>({ out: 0, overdue: 0 });
+
+  useEffect(() => {
+    // Fetch jumlah gate pass out & overdue
+    (async () => {
+      const { data, error } = await supabase
+        .from('gate_pass')
+        .select('status', { count: 'exact', head: false });
+      if (!error && Array.isArray(data)) {
+        setGatePassStats({
+          out: data.filter((g: any) => g.status === 'out').length,
+          overdue: data.filter((g: any) => g.status === 'overdue').length,
+        });
+      }
+    })();
+  }, []);
+
   const operationalHighlights = stats
     ? [
         { label: 'Absensi hari ini', value: `${stats.absensiMasuk}/${stats.absensiHariIni}`, hint: `${attendanceRate}% hadir` },
         { label: 'Izin pending', value: String(stats.pendingIzin), hint: 'Menunggu persetujuan' },
+        { label: 'Gate Pass keluar', value: String(gatePassStats.out), hint: 'Sedang di luar' },
+        { label: 'Gate Pass overdue', value: String(gatePassStats.overdue), hint: 'Terlambat kembali' },
         { label: 'Pengumuman pin', value: String(stats.pinnedPengumuman), hint: 'Tersemat di feed' },
         { label: 'Stok rendah', value: String(lowStockItems.length), hint: 'Perlu pengecekan' },
       ]

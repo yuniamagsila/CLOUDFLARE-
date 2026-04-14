@@ -7,23 +7,38 @@ export default function GatePassForm() {
   const [waktuKeluar, setWaktuKeluar] = useState('');
   const [waktuKembali, setWaktuKembali] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const createGatePass = useGatePassStore(s => s.createGatePass);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    if (!keperluan || !tujuan || !waktuKeluar || !waktuKembali) {
+      setError('Semua field wajib diisi.');
+      return;
+    }
+    if (new Date(waktuKembali) <= new Date(waktuKeluar)) {
+      setError('Waktu kembali harus setelah waktu keluar.');
+      return;
+    }
     setLoading(true);
-    await createGatePass({
-      keperluan,
-      tujuan,
-      waktu_keluar: waktuKeluar,
-      waktu_kembali: waktuKembali,
-    });
+    try {
+      await createGatePass({
+        keperluan,
+        tujuan,
+        waktu_keluar: waktuKeluar,
+        waktu_kembali: waktuKembali,
+      });
+      setKeperluan(''); setTujuan(''); setWaktuKeluar(''); setWaktuKembali('');
+    } catch (e: any) {
+      setError(e.message || 'Gagal mengajukan izin');
+    }
     setLoading(false);
-    setKeperluan(''); setTujuan(''); setWaktuKeluar(''); setWaktuKembali('');
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="alert alert-error text-sm">{error}</div>}
       <input className="input" placeholder="Keperluan" value={keperluan} onChange={e => setKeperluan(e.target.value)} required />
       <input className="input" placeholder="Tujuan" value={tujuan} onChange={e => setTujuan(e.target.value)} required />
       <input className="input" type="datetime-local" value={waktuKeluar} onChange={e => setWaktuKeluar(e.target.value)} required />

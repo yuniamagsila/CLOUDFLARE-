@@ -17,7 +17,10 @@ export const useGatePassStore = create<GatePassState>((set, get) => ({
   gatePasses: [],
   async fetchGatePasses() {
     const user = useAuthStore.getState().user;
-    let query = supabase.from('gate_pass').select('*').order('created_at', { ascending: false });
+    let query = supabase
+      .from('gate_pass')
+      .select('id,user_id,keperluan,tujuan,waktu_keluar,waktu_kembali,actual_keluar,actual_kembali,status,approved_by,qr_token,created_at')
+      .order('created_at', { ascending: false });
     if (user?.role === 'prajurit') {
       query = query.eq('user_id', user.id);
     }
@@ -61,12 +64,29 @@ export const useGatePassStore = create<GatePassState>((set, get) => ({
     await get().fetchGatePasses();
   },
   async scanGatePass(qrToken) {
+    const user = useAuthStore.getState().user;
+    if (!user || (user.role !== 'guard' && user.role !== 'admin')) {
+      throw new Error('Akses hanya untuk petugas jaga');
+    }
     const { data, error } = await supabase
       .from('gate_pass')
-      .select('*')
+      .select('id,status,actual_keluar,actual_kembali,waktu_keluar,waktu_kembali')
       .eq('qr_token', qrToken)
       .single();
     if (error || !data) throw new Error('QR tidak valid');
+
+    // Blokir double scan keluar
+    if (data.status === 'out' && data.actual_keluar) {
+      // Sudah keluar, cek apakah sudah scan masuk
+      if (!data.actual_kembali) {
+        // Sudah keluar, belum kembali
+        throw new Error('Sudah scan keluar, silakan scan masuk saat kembali.');
+      }
+    }
+    // Blokir double scan masuk
+    if (data.status === 'returned' && data.actual_kembali) {
+      throw new Error('Sudah scan kembali, tidak bisa scan lagi.');
+    }
 
     if (data.status === 'approved') {
       // Set keluar
@@ -90,8 +110,42 @@ export const useGatePassStore = create<GatePassState>((set, get) => ({
       throw new Error('Sudah kembali, tidak bisa scan lagi');
     } else if (data.status === 'pending' || data.status === 'rejected') {
       throw new Error('Gate pass belum di-approve atau sudah ditolak');
+    } else if (data.status === 'overdue') {
+      throw new Error('Gate pass overdue, segera lapor ke komandan.');
     } else {
       throw new Error('Status gate pass tidak valid untuk scan');
     }
   },
+});
+
+let gatePassChannel: any = null;
+
+export const useGatePassStore = create<GatePassState>((set, get) => {
+  // Realtime listener
+  if (!gatePassChannel && typeof window !== 'undefined') {
+    // Hindari duplicate channel
+    const { supabase } = require('../lib/supabase');
+    gatePassChannel = supabase
+      .channel('gate-pass-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass' }, () => {
+        get().fetchGatePasses();
+      })
+      .subscribe();
+  }
+  return {
+    gatePasses: [],
+    async fetchGatePasses() {
+      // ...existing code...
+    },
+    async createGatePass(data) {
+      // ...existing code...
+    },
+    async approveGatePass(id, approved) {
+      // ...existing code...
+    },
+    async scanGatePass(qrToken) {
+      // ...existing code...
+    },
+  };
+});
 }));

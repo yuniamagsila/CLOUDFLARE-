@@ -1,0 +1,27 @@
+-- Enable RLS jika belum
+ALTER TABLE gate_pass ENABLE ROW LEVEL SECURITY;
+
+-- Guard hanya bisa SELECT gate_pass status 'approved' atau 'out'
+CREATE POLICY "Guard dapat melihat gate pass scan" ON gate_pass
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM users u
+      WHERE u.id = auth.uid() AND u.role = 'guard'
+    )
+    AND (status = 'approved' OR status = 'out')
+  );
+
+-- Guard hanya bisa UPDATE actual_keluar, actual_kembali, status
+CREATE POLICY "Guard update status keluar/masuk" ON gate_pass
+  FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM users u
+      WHERE u.id = auth.uid() AND u.role = 'guard'
+    )
+    AND (status = 'approved' OR status = 'out')
+  )
+  WITH CHECK (
+    (status = 'out' OR status = 'returned' OR status = 'approved')
+  );

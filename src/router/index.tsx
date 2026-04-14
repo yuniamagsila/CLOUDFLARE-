@@ -1,3 +1,11 @@
+const GuardDashboard = lazy(() => import('../pages/guard/GuardDashboard'));
+  // Guard route
+  {
+    element: <ProtectedRoute allowedRoles={['guard']} />, 
+    children: [
+      { path: '/guard', element: wrap(<GuardDashboard />) },
+    ],
+  },
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
