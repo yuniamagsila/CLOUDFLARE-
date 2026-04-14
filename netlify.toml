@@ -1,11 +1,12 @@
 [build]
-  command = "npm install --include=optional && npm run build"
+  command = "npm ci --omit=optional && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"
   TAILWIND_DISABLE_OXIDE = "1"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [[redirects]]
   from = "/*"
@@ -23,7 +24,7 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
 [context.production]
-  command = "npm install --include=optional && npm run build"
+  command = "npm ci --omit=optional && npm run build"
 
 [context.deploy-preview]
-  command = "npm install --include=optional && npm run build"
+  command = "npm ci --omit=optional && npm run build"
