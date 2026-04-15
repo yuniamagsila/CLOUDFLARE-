@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
-import { fetchGatePassesByUser, fetchGatePassByQrToken, insertGatePass, patchGatePassStatus, rpcScanGatePass } from '../lib/api/gatepass';
+import { fetchGatePassesByUser, fetchAllGatePasses, fetchGatePassByQrToken, insertGatePass, patchGatePassStatus, rpcScanGatePass } from '../lib/api/gatepass';
 import { GatePass, GatePassStatus } from '../types';
 import { generateQrToken } from '../utils/gatepass';
 import { useAuthStore } from './authStore';
@@ -24,7 +23,14 @@ export const useGatePassStore = create<GatePassState>()((set, get) => ({
   async fetchGatePasses() {
     const user = useAuthStore.getState().user;
     if (!user) throw new Error('User tidak ditemukan');
-    const data = await fetchGatePassesByUser(user.id);
+
+    // Admin, komandan, dan guard perlu melihat semua gate pass (untuk monitoring &
+    // approval). Prajurit hanya perlu melihat gate pass milik sendiri.
+    const data =
+      user.role === 'prajurit'
+        ? await fetchGatePassesByUser(user.id)
+        : await fetchAllGatePasses();
+
     // Client-side overdue detection: mark passes with status 'out' whose
     // waktu_kembali has already passed as 'overdue'.
     const now = new Date();

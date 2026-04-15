@@ -14,7 +14,7 @@ export default function GatePassPage() {
   const { showNotification } = useUIStore();
   useGatePassRealtime();
 
-  useEffect(() => { fetchGatePasses(); }, [fetchGatePasses]);
+  useEffect(() => { void fetchGatePasses(); }, [fetchGatePasses]);
 
   // Tampilkan notifikasi overdue via sistem notification
   useEffect(() => {

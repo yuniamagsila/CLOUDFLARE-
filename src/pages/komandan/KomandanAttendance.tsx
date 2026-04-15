@@ -54,7 +54,7 @@ export default function KomandanAttendance() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchAttendance(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [user?.satuan, fetchAttendance]);
 
   const total = attendances.length;
   const hadir = attendances.filter((a) => a.status === 'hadir').length;

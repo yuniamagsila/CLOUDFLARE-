@@ -182,16 +182,20 @@ export default function AdminDashboard() {
   const [gatePassStats, setGatePassStats] = useState<{ out: number; overdue: number }>({ out: 0, overdue: 0 });
 
   useEffect(() => {
-    // Fetch jumlah gate pass out & overdue
+    // Fetch gate pass stats and compute overdue client-side.
+    // 'overdue' is never persisted to the DB — it's computed by comparing
+    // waktu_kembali with the current time for passes with status 'out'.
     (async () => {
+      const now = new Date();
       const { data, error } = await supabase
         .from('gate_pass')
-        .select('status', { count: 'exact', head: false });
+        .select('status, waktu_kembali', { head: false });
       if (!error && Array.isArray(data)) {
-        const rows = data as Array<{ status?: string }>;
+        const rows = data as Array<{ status?: string; waktu_kembali?: string | null }>;
+        const outRows = rows.filter((g) => g.status === 'out');
         setGatePassStats({
-          out: rows.filter((g) => g.status === 'out').length,
-          overdue: rows.filter((g) => g.status === 'overdue').length,
+          out: outRows.filter((g) => !g.waktu_kembali || new Date(g.waktu_kembali) >= now).length,
+          overdue: outRows.filter((g) => g.waktu_kembali && new Date(g.waktu_kembali) < now).length,
         });
       }
     })();
