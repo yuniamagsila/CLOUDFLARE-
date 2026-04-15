@@ -52,13 +52,11 @@ export function useLogisticsRequests(options: UseLogisticsRequestsOptions = {}) 
       channelRef.current = null;
     }
 
-    const channel = supabase
-      .channel('logistics-requests-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'logistics_requests' }, () => {
-        void fetchRequests();
-      })
-      .subscribe();
-
+    const channel = supabase.channel('logistics-requests-changes');
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'logistics_requests' }, () => {
+      void fetchRequests();
+    });
+    channel.subscribe();
     channelRef.current = channel;
 
     return () => {

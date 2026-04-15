@@ -59,14 +59,13 @@ export function useMessages() {
       void supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
-    const channel = supabase
-      .channel('messages-inbox')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_user=eq.${user.id}` },
-        () => { void fetchMessages(); },
-      )
-      .subscribe();
+    const channel = supabase.channel('messages-inbox');
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_user=eq.${user.id}` },
+      () => { void fetchMessages(); },
+    );
+    channel.subscribe();
     channelRef.current = channel;
     return () => {
       if (channelRef.current) {

@@ -48,12 +48,11 @@ export function useTasks(options: UseTasksOptions = {}) {
   useEffect(() => {
     if (!user) return;
     const filter = options.assignedTo ? `assigned_to=eq.${options.assignedTo}` : undefined;
-    const channel = supabase
-      .channel('tasks-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter }, () => {
-        void fetchTasks();
-      })
-      .subscribe();
+    const channel = supabase.channel('tasks-changes');
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter }, () => {
+      void fetchTasks();
+    });
+    channel.subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [user, options.assignedTo, fetchTasks]);
 

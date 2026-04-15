@@ -147,17 +147,15 @@ export default function AdminDashboard() {
       channelRef.current = null;
     }
 
-    const channel = supabase
-      .channel('admin-dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'logistics_items' }, () => { void fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { void fetchData(); })
-      .subscribe();
-
+    const channel = supabase.channel('admin-dashboard');
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'logistics_items' }, () => { void fetchData(); });
+    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { void fetchData(); });
+    channel.subscribe();
     channelRef.current = channel;
 
     return () => {

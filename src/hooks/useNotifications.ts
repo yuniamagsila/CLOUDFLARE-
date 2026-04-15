@@ -54,46 +54,44 @@ export function useNotifications() {
       void supabase.removeChannel(channelRef.current);
     }
 
-    const channel = supabase
-      .channel(`karyo-notif-${user.id}`)
-      // New message received
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_user=eq.${user.id}` },
-        (payload) => {
-          const row = payload.new as { isi: string };
-          sendNotification('📨 Pesan Baru', row.isi?.slice(0, 120) ?? 'Anda mendapat pesan baru');
+    const channel = supabase.channel(`karyo-notif-${user.id}`);
+    // New message received
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `to_user=eq.${user.id}` },
+      (payload) => {
+        const row = payload.new as { isi: string };
+        sendNotification('📨 Pesan Baru', row.isi?.slice(0, 120) ?? 'Anda mendapat pesan baru');
+      }
+    );
+    // New task assigned
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'tasks', filter: `assigned_to=eq.${user.id}` },
+      (payload) => {
+        const row = payload.new as { judul: string };
+        sendNotification('🪖 Tugas Baru', `"${row.judul ?? 'Tugas baru'}" telah diberikan kepada Anda`);
+      }
+    );
+    // Task status updated (e.g., approved/rejected)
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'tasks',
+        filter: `assigned_to=eq.${user.id}`,
+      },
+      (payload) => {
+        const row = payload.new as { judul: string; status: string };
+        if (row.status === 'approved') {
+          sendNotification('✅ Tugas Disetujui', `"${row.judul}" telah disetujui oleh Komandan`);
+        } else if (row.status === 'in_progress' && (payload.old as { status: string }).status === 'done') {
+          sendNotification('↩ Tugas Dikembalikan', `"${row.judul}" perlu direvisi. Cek catatan Komandan.`);
         }
-      )
-      // New task assigned
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'tasks', filter: `assigned_to=eq.${user.id}` },
-        (payload) => {
-          const row = payload.new as { judul: string };
-          sendNotification('🪖 Tugas Baru', `"${row.judul ?? 'Tugas baru'}" telah diberikan kepada Anda`);
-        }
-      )
-      // Task status updated (e.g., approved/rejected)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tasks',
-          filter: `assigned_to=eq.${user.id}`,
-        },
-        (payload) => {
-          const row = payload.new as { judul: string; status: string };
-          if (row.status === 'approved') {
-            sendNotification('✅ Tugas Disetujui', `"${row.judul}" telah disetujui oleh Komandan`);
-          } else if (row.status === 'in_progress' && (payload.old as { status: string }).status === 'done') {
-            sendNotification('↩ Tugas Dikembalikan', `"${row.judul}" perlu direvisi. Cek catatan Komandan.`);
-          }
-        }
-      )
-      .subscribe();
-
+      }
+    );
+    channel.subscribe();
     channelRef.current = channel;
 
     return () => {
