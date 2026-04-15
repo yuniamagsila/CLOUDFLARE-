@@ -142,23 +142,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       const user = userData as User;
 
-      // Step 3: Update last_login and is_online
-      await supabase
-        .from('users')
-        .update({
-          last_login: new Date().toISOString(),
-          is_online: true,
-          login_attempts: 0,
-          locked_until: null,
-        })
-        .eq('id', user_id);
+      // Step 3: Update last_login and is_online via RPC
+      await supabase.rpc('update_user_login', {
+        p_user_id: user_id,
+        p_last_login: new Date().toISOString(),
+        p_is_online: true
+      });
 
-      // Step 4: Log the login action
-      await supabase.from('audit_logs').insert({
-        user_id: user_id,
-        action: 'LOGIN',
-        resource: 'auth',
-        detail: { nrp, role: user_role },
+      // Step 4: Log the login action via RPC
+      await supabase.rpc('insert_audit_log', {
+        p_user_id: user_id,
+        p_action: 'LOGIN',
+        p_resource: 'auth',
+        p_detail: JSON.stringify({ nrp, role: user_role })
       });
 
       await saveSession({ user_id, role: user_role, expires_at: makeSessionExpiry() });
@@ -173,15 +169,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   logout: async () => {
     const { user } = get();
     if (user) {
-      await supabase
-        .from('users')
-        .update({ is_online: false })
-        .eq('id', user.id);
-
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        action: 'LOGOUT',
-        resource: 'auth',
+      await supabase.rpc('update_user_login', {
+        p_user_id: user.id,
+        p_is_online: false
+      });
+      await supabase.rpc('insert_audit_log', {
+        p_user_id: user.id,
+        p_action: 'LOGOUT',
+        p_resource: 'auth',
+        p_detail: null
       });
     }
     clearSession();
@@ -196,27 +192,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
     try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select(USER_COLUMNS)
-        .eq('id', session.user_id)
-        .eq('is_active', true)
-        .single();
-
+      const { data: userData, error } = await supabase.rpc('get_user_by_id', { p_user_id: session.user_id }).single();
       if (error || !userData) {
         clearSession();
         set({ isLoading: false, isInitialized: true });
         return;
       }
-
       const user = userData as User;
-
-      // Re-bind user identity to the new DB session for RLS policies
-      await supabase.rpc('set_session_context', {
-        p_user_id: session.user_id,
-        p_role: user.role,
-      });
-
       set({ user, isAuthenticated: true, isLoading: false, isInitialized: true });
     } catch {
       clearSession();
@@ -227,7 +209,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   updateOnlineStatus: async (status: boolean) => {
     const { user } = get();
     if (!user) return;
-    await supabase.from('users').update({ is_online: status }).eq('id', user.id);
+    await supabase.rpc('update_user_login', {
+      p_user_id: user.id,
+      p_is_online: status
+    });
     set({ user: { ...user, is_online: status } });
   },
 }));
