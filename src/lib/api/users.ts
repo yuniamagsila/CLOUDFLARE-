@@ -2,7 +2,7 @@ import { supabase } from '../supabase';
 import type { User, Role } from '../../types';
 
 const USER_COLUMNS =
-  'id, nrp, nama, role, pangkat, jabatan, satuan, foto_url, is_active, is_online, login_attempts, locked_until, last_login, created_at, updated_at';
+  'id, nrp, nama, role, pangkat, jabatan, satuan, foto_url, is_active, is_online, login_attempts, locked_until, last_login, created_at, updated_at, tempat_lahir, tanggal_lahir, no_telepon, alamat, tanggal_masuk_dinas, pendidikan_terakhir, agama, status_pernikahan, golongan_darah, kontak_darurat_nama, kontak_darurat_telp';
 
 export interface FetchUsersParams {
   role?: Role;
@@ -51,6 +51,30 @@ export async function resetUserPin(userId: string, newPin: string): Promise<void
   const { error } = await supabase.rpc('reset_user_pin', {
     p_user_id: userId,
     p_new_pin: newPin,
+  });
+  if (error) throw error;
+}
+
+export async function fetchUserById(userId: string): Promise<User> {
+  const { data, error } = await supabase.rpc('get_user_detail', { p_user_id: userId }).single();
+  if (error) throw error;
+  return data as User;
+}
+
+export interface UpdateOwnProfileParams {
+  no_telepon?: string;
+  alamat?: string;
+  kontak_darurat_nama?: string;
+  kontak_darurat_telp?: string;
+}
+
+export async function updateOwnProfile(userId: string, params: UpdateOwnProfileParams): Promise<void> {
+  const { error } = await supabase.rpc('update_own_profile', {
+    p_user_id: userId,
+    p_no_telepon: params.no_telepon ?? null,
+    p_alamat: params.alamat ?? null,
+    p_kontak_darurat_nama: params.kontak_darurat_nama ?? null,
+    p_kontak_darurat_telp: params.kontak_darurat_telp ?? null,
   });
   if (error) throw error;
 }

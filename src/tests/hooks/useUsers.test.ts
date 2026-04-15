@@ -157,6 +157,31 @@ describe('useUsers', () => {
       expect(eqMock).toHaveBeenCalledWith('id', 'u1');
     });
 
+    it('calls supabase update with extended profile fields', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ error: null });
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+      const fromMock = buildQuery({ data: mockUsers, error: null }) as Record<string, unknown>;
+      fromMock.update = updateMock;
+      mockSupabase.from.mockReturnValue(fromMock);
+
+      const { result } = renderHook(() => useUsers());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.updateUser('u1', {
+          pangkat: 'Kapten',
+          jabatan: 'Kompi A',
+          tanggal_lahir: '1990-05-15',
+          agama: 'Islam',
+          golongan_darah: 'A',
+        });
+      });
+
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.objectContaining({ pangkat: 'Kapten', golongan_darah: 'A' })
+      );
+    });
+
     it('throws when update returns error', async () => {
       const eqMock = vi.fn().mockResolvedValue({ error: new Error('update failed') });
       const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
@@ -226,4 +251,80 @@ describe('useUsers', () => {
       ).rejects.toThrow('pin reset failed');
     });
   });
+
+  describe('getUserById', () => {
+    it('calls get_user_detail RPC with correct user id', async () => {
+      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
+      const singleMock = vi.fn().mockResolvedValue({ data: mockUsers[0], error: null });
+      mockSupabase.rpc.mockReturnValue({ single: singleMock });
+
+      const { result } = renderHook(() => useUsers());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      let user: User | undefined;
+      await act(async () => {
+        user = await result.current.getUserById('u1');
+      });
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('get_user_detail', { p_user_id: 'u1' });
+      expect(user?.id).toBe('u1');
+    });
+
+    it('throws when get_user_detail RPC returns error', async () => {
+      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
+      const singleMock = vi.fn().mockResolvedValue({ data: null, error: new Error('not found') });
+      mockSupabase.rpc.mockReturnValue({ single: singleMock });
+
+      const { result } = renderHook(() => useUsers());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await expect(
+        act(async () => {
+          await result.current.getUserById('invalid-id');
+        })
+      ).rejects.toThrow('not found');
+    });
+  });
+
+  describe('updateOwnProfile', () => {
+    it('calls update_own_profile RPC with allowed fields', async () => {
+      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
+      mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+
+      const { result } = renderHook(() => useUsers());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await act(async () => {
+        await result.current.updateOwnProfile('u1', {
+          no_telepon: '081234567890',
+          alamat: 'Jl. Merdeka No. 1',
+          kontak_darurat_nama: 'Ibu Sari',
+          kontak_darurat_telp: '089876543210',
+        });
+      });
+
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_own_profile', {
+        p_user_id: 'u1',
+        p_no_telepon: '081234567890',
+        p_alamat: 'Jl. Merdeka No. 1',
+        p_kontak_darurat_nama: 'Ibu Sari',
+        p_kontak_darurat_telp: '089876543210',
+      });
+    });
+
+    it('throws when update_own_profile RPC returns error', async () => {
+      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
+      mockSupabase.rpc.mockResolvedValue({ data: null, error: new Error('not authorized') });
+
+      const { result } = renderHook(() => useUsers());
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+      await expect(
+        act(async () => {
+          await result.current.updateOwnProfile('u2', { no_telepon: '0812' });
+        })
+      ).rejects.toThrow('not authorized');
+    });
+  });
 });
+

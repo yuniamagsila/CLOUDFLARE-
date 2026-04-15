@@ -8,6 +8,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import { RoleBadge } from '../../components/common/Badge';
 import { TableSkeleton } from '../../components/common/Skeleton';
 import Pagination from '../../components/ui/Pagination';
+import UserDetailModal from '../../components/common/UserDetailModal';
 import { usePagination } from '../../hooks/usePagination';
 import { useUsers } from '../../hooks/useUsers';
 import { useUIStore } from '../../store/uiStore';
@@ -29,7 +30,7 @@ function parseCSV(text: string): Record<string, string>[] {
 }
 
 export default function UserManagement() {
-  const { users, isLoading, createUser, toggleUserActive, resetUserPin } = useUsers();
+  const { users, isLoading, createUser, updateUser, toggleUserActive, resetUserPin, getUserById } = useUsers();
   const { showNotification } = useUIStore();
 
   const [searchRaw, setSearchRaw] = useState('');
@@ -39,6 +40,8 @@ export default function UserManagement() {
   const [showResetPin, setShowResetPin] = useState(false);
   const [showBulkReset, setShowBulkReset] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
 
@@ -214,6 +217,25 @@ export default function UserManagement() {
     }
   };
 
+  const handleOpenDetail = async (u: User) => {
+    // Fetch full detail (including extended fields) before opening modal
+    try {
+      const full = await getUserById(u.id);
+      setDetailUser(full);
+    } catch {
+      // Fallback to list data if RPC unavailable
+      setDetailUser(u);
+    }
+    setShowDetail(true);
+  };
+
+  const handleSaveDetail = async (id: string, updates: Partial<User>) => {
+    await updateUser(id, updates);
+    // Refresh detail user after save
+    const refreshed = await getUserById(id);
+    setDetailUser(refreshed);
+  };
+
   return (
     <DashboardLayout title="Manajemen Personel">
       <div className="space-y-5">
@@ -296,6 +318,7 @@ export default function UserManagement() {
               { key: 'nrp', header: 'NRP', render: (u) => <span className="font-mono text-sm">{u.nrp}</span> },
               { key: 'nama', header: 'Nama' },
               { key: 'pangkat', header: 'Pangkat', render: (u) => u.pangkat ?? '—' },
+              { key: 'jabatan', header: 'Jabatan', render: (u) => u.jabatan ?? '—' },
               { key: 'satuan', header: 'Satuan' },
               { key: 'role', header: 'Role', render: (u) => <RoleBadge role={u.role} /> },
               {
@@ -309,6 +332,13 @@ export default function UserManagement() {
               {
                 key: 'actions', header: 'Aksi', render: (u) => (
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleOpenDetail(u)}
+                    >
+                      Detail
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -530,6 +560,16 @@ export default function UserManagement() {
           )}
         </div>
       </Modal>
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        isOpen={showDetail}
+        onClose={() => { setShowDetail(false); setDetailUser(null); }}
+        user={detailUser}
+        viewerRole="admin"
+        mode="edit"
+        onSave={handleSaveDetail}
+      />
     </DashboardLayout>
   );
 }

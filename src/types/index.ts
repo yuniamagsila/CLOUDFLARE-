@@ -57,6 +57,22 @@ export interface User {
   last_login?: string;
   created_at: string;
   updated_at: string;
+  // Extended profile fields
+  tempat_lahir?: string;
+  tanggal_lahir?: string;
+  no_telepon?: string;
+  alamat?: string;
+  tanggal_masuk_dinas?: string;
+  pendidikan_terakhir?: string;
+  agama?: string;
+  status_pernikahan?: 'lajang' | 'menikah' | 'cerai' | 'duda' | 'janda';
+  golongan_darah?: 'A' | 'B' | 'AB' | 'O';
+  // Admin-only fields
+  nomor_ktp?: string;
+  catatan_khusus?: string;
+  // Emergency contact
+  kontak_darurat_nama?: string;
+  kontak_darurat_telp?: string;
 }
 
 // ============================================================

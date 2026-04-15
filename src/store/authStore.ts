@@ -6,10 +6,6 @@ const SESSION_KEY = 'karyo_session';
 const CRYPTO_KEY_SESSION = 'karyo_session_key';
 const SESSION_DURATION_HOURS = 8;
 
-// Explicit user columns — excludes server-only columns such as pin_hash
-const USER_COLUMNS =
-  'id, nrp, nama, role, pangkat, jabatan, satuan, foto_url, is_active, is_online, login_attempts, locked_until, last_login, created_at, updated_at';
-
 interface AuthStore {
   user: User | null;
   isAuthenticated: boolean;

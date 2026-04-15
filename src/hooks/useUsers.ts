@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchUsers as apiFetchUsers, createUserWithPin, patchUser, resetUserPin as apiResetUserPin } from '../lib/api/users';
+import { fetchUsers as apiFetchUsers, fetchUserById as apiFetchUserById, createUserWithPin, patchUser, resetUserPin as apiResetUserPin, updateOwnProfile as apiUpdateOwnProfile, type UpdateOwnProfileParams } from '../lib/api/users';
 import { handleError } from '../lib/handleError';
 import type { User, Role } from '../types';
 
@@ -59,5 +59,13 @@ export function useUsers(options: UseUsersOptions = {}) {
     await apiResetUserPin(userId, newPin);
   };
 
-  return { users, isLoading, error, refetch: fetchUsers, createUser, updateUser, toggleUserActive, resetUserPin };
+  const getUserById = async (userId: string): Promise<User> => {
+    return apiFetchUserById(userId);
+  };
+
+  const updateOwnProfile = async (userId: string, params: UpdateOwnProfileParams): Promise<void> => {
+    await apiUpdateOwnProfile(userId, params);
+  };
+
+  return { users, isLoading, error, refetch: fetchUsers, createUser, updateUser, toggleUserActive, resetUserPin, getUserById, updateOwnProfile };
 }

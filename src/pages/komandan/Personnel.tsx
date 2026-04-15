@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Table from '../../components/ui/Table';
+import Button from '../../components/common/Button';
 import PageHeader from '../../components/ui/PageHeader';
 import { RoleBadge } from '../../components/common/Badge';
 import { TableSkeleton } from '../../components/common/Skeleton';
+import UserDetailModal from '../../components/common/UserDetailModal';
 import { useUsers } from '../../hooks/useUsers';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useAuthStore } from '../../store/authStore';
@@ -11,11 +13,13 @@ import type { User } from '../../types';
 
 export default function Personnel() {
   const { user } = useAuthStore();
-  const { users, isLoading } = useUsers({ satuan: user?.satuan, isActive: true });
+  const { users, isLoading, getUserById } = useUsers({ satuan: user?.satuan, isActive: true });
 
   const [searchRaw, setSearchRaw] = useState('');
   const [filterOnline, setFilterOnline] = useState<'all' | 'online' | 'offline'>('all');
   const search = useDebounce(searchRaw, 300);
+  const [showDetail, setShowDetail] = useState(false);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -32,6 +36,16 @@ export default function Personnel() {
   });
 
   const onlineCount = users.filter((u) => u.is_online).length;
+
+  const handleOpenDetail = async (u: User) => {
+    try {
+      const full = await getUserById(u.id);
+      setDetailUser(full);
+    } catch {
+      setDetailUser(u);
+    }
+    setShowDetail(true);
+  };
 
   return (
     <DashboardLayout title="Data Personel">
@@ -80,7 +94,7 @@ export default function Personnel() {
         </div>
 
         {isLoading ? (
-          <TableSkeleton rows={6} cols={6} />
+          <TableSkeleton rows={6} cols={7} />
         ) : (
           <Table<User>
             columns={[
@@ -108,6 +122,15 @@ export default function Personnel() {
                   ? new Date(u.last_login).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
                   : '—',
               },
+              {
+                key: 'actions',
+                header: 'Aksi',
+                render: (u) => (
+                  <Button size="sm" variant="secondary" onClick={() => handleOpenDetail(u)}>
+                    Detail
+                  </Button>
+                ),
+              },
             ]}
             data={filtered}
             keyExtractor={(u) => u.id}
@@ -116,6 +139,14 @@ export default function Personnel() {
           />
         )}
       </div>
+
+      <UserDetailModal
+        isOpen={showDetail}
+        onClose={() => { setShowDetail(false); setDetailUser(null); }}
+        user={detailUser}
+        viewerRole="komandan"
+        mode="view"
+      />
     </DashboardLayout>
   );
 }

@@ -9,6 +9,7 @@ import PageHeader from '../../components/ui/PageHeader';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { useAttendance } from '../../hooks/useAttendance';
+import { useUsers } from '../../hooks/useUsers';
 import { supabase } from '../../lib/supabase';
 
 interface PersonalStats {
@@ -22,11 +23,32 @@ export default function Profile() {
   const { user } = useAuthStore();
   const { showNotification } = useUIStore();
   const { attendances } = useAttendance(user?.id);
+  const { updateOwnProfile } = useUsers();
 
   const [changingPin, setChangingPin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [pinForm, setPinForm] = useState({ oldPin: '', newPin: '', confirmPin: '' });
   const [stats, setStats] = useState<PersonalStats | null>(null);
+
+  // Edit profile state
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    no_telepon: '',
+    alamat: '',
+    kontak_darurat_nama: '',
+    kontak_darurat_telp: '',
+  });
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        no_telepon: user.no_telepon ?? '',
+        alamat: user.alamat ?? '',
+        kontak_darurat_nama: user.kontak_darurat_nama ?? '',
+        kontak_darurat_telp: user.kontak_darurat_telp ?? '',
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -88,6 +110,21 @@ export default function Profile() {
     }
   };
 
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) return;
+    setIsSaving(true);
+    try {
+      await updateOwnProfile(user.id, profileForm);
+      showNotification('Profil berhasil diperbarui', 'success');
+      setEditingProfile(false);
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Gagal memperbarui profil', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -133,6 +170,28 @@ export default function Profile() {
               { label: 'Pangkat', value: user.pangkat ?? '—' },
               { label: 'Jabatan', value: user.jabatan ?? '—' },
               { label: 'Satuan', value: user.satuan },
+              { label: 'Tempat Lahir', value: user.tempat_lahir ?? '—' },
+              {
+                label: 'Tanggal Lahir',
+                value: user.tanggal_lahir
+                  ? new Date(user.tanggal_lahir + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '—',
+              },
+              { label: 'Agama', value: user.agama ?? '—' },
+              { label: 'Pendidikan Terakhir', value: user.pendidikan_terakhir ?? '—' },
+              {
+                label: 'Status Pernikahan',
+                value: user.status_pernikahan
+                  ? user.status_pernikahan.charAt(0).toUpperCase() + user.status_pernikahan.slice(1)
+                  : '—',
+              },
+              { label: 'Golongan Darah', value: user.golongan_darah ?? '—' },
+              {
+                label: 'Tanggal Masuk Dinas',
+                value: user.tanggal_masuk_dinas
+                  ? new Date(user.tanggal_masuk_dinas + 'T12:00:00').toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '—',
+              },
               { label: 'Status Akun', value: user.is_active ? 'Aktif' : 'Non-Aktif' },
               {
                 label: 'Login Terakhir',
@@ -149,6 +208,94 @@ export default function Profile() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Edit Profil Kontak — field yang bisa diedit prajurit */}
+        <div className="app-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-text-primary">Informasi Kontak</h3>
+            {!editingProfile && (
+              <Button size="sm" variant="outline" onClick={() => setEditingProfile(true)}>
+                ✏ Edit
+              </Button>
+            )}
+          </div>
+
+          {editingProfile ? (
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <Input
+                label="No. Telepon"
+                type="tel"
+                inputMode="tel"
+                value={profileForm.no_telepon}
+                onChange={(e) => setProfileForm({ ...profileForm, no_telepon: e.target.value })}
+                placeholder="Contoh: 08123456789"
+              />
+              <div>
+                <label className="text-sm font-semibold text-text-primary">Alamat</label>
+                <textarea
+                  className="form-control mt-1 min-h-[80px] resize-y"
+                  value={profileForm.alamat}
+                  onChange={(e) => setProfileForm({ ...profileForm, alamat: e.target.value })}
+                  placeholder="Alamat lengkap..."
+                />
+              </div>
+              <Input
+                label="Kontak Darurat — Nama"
+                type="text"
+                value={profileForm.kontak_darurat_nama}
+                onChange={(e) => setProfileForm({ ...profileForm, kontak_darurat_nama: e.target.value })}
+                placeholder="Nama anggota keluarga / kerabat"
+              />
+              <Input
+                label="Kontak Darurat — Telepon"
+                type="tel"
+                inputMode="tel"
+                value={profileForm.kontak_darurat_telp}
+                onChange={(e) => setProfileForm({ ...profileForm, kontak_darurat_telp: e.target.value })}
+                placeholder="Contoh: 08123456789"
+              />
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                <p className="text-xs text-primary">
+                  ℹ Data lainnya (nama, NRP, pangkat, jabatan, satuan) hanya dapat diubah oleh Admin.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingProfile(false);
+                    setProfileForm({
+                      no_telepon: user.no_telepon ?? '',
+                      alamat: user.alamat ?? '',
+                      kontak_darurat_nama: user.kontak_darurat_nama ?? '',
+                      kontak_darurat_telp: user.kontak_darurat_telp ?? '',
+                    });
+                  }}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" isLoading={isSaving}>
+                  Simpan
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-0">
+              {[
+                { label: 'No. Telepon', value: user.no_telepon ?? '—' },
+                { label: 'Alamat', value: user.alamat ?? '—' },
+                { label: 'Kontak Darurat', value: user.kontak_darurat_nama ?? '—' },
+                { label: 'Telepon Darurat', value: user.kontak_darurat_telp ?? '—' },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex items-start justify-between border-b border-surface/75 py-2 last:border-0 gap-4">
+                  <span className="text-sm text-text-muted flex-shrink-0">{label}</span>
+                  <span className="text-sm font-medium text-text-primary text-right break-all">{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Personal Stats */}
@@ -274,3 +421,5 @@ export default function Profile() {
     </DashboardLayout>
   );
 }
+
+
