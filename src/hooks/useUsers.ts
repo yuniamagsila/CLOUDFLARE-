@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchUsers as apiFetchUsers, createUserWithPin, patchUser, resetUserPin as apiResetUserPin } from '../lib/api/users';
+import { handleError } from '../lib/handleError';
 import type { User, Role } from '../types';
 
 interface UseUsersOptions {
@@ -17,20 +18,10 @@ export function useUsers(options: UseUsersOptions = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from('users')
-        .select('id, nrp, nama, role, pangkat, jabatan, satuan, foto_url, is_active, is_online, login_attempts, locked_until, last_login, created_at, updated_at')
-        .order('nama');
-
-      if (options.role) query = query.eq('role', options.role);
-      if (options.satuan) query = query.eq('satuan', options.satuan);
-      if (options.isActive !== undefined) query = query.eq('is_active', options.isActive);
-
-      const { data, error: err } = await query;
-      if (err) throw err;
-      setUsers((data as User[]) ?? []);
+      const data = await apiFetchUsers({ role: options.role, satuan: options.satuan, isActive: options.isActive });
+      setUsers(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat data user');
+      setError(handleError(err, 'Gagal memuat data user'));
     } finally {
       setIsLoading(false);
     }
@@ -42,23 +33,21 @@ export function useUsers(options: UseUsersOptions = {}) {
 
   const createUser = async (userData: Omit<User, 'id' | 'created_at' | 'updated_at' | 'is_online' | 'login_attempts'> & { pin: string }) => {
     const { pin, ...rest } = userData;
-    const { data, error } = await supabase.rpc('create_user_with_pin', {
-      p_nrp: rest.nrp,
-      p_pin: pin,
-      p_nama: rest.nama,
-      p_role: rest.role,
-      p_satuan: rest.satuan,
-      p_pangkat: rest.pangkat ?? null,
-      p_jabatan: rest.jabatan ?? null,
+    const data = await createUserWithPin({
+      nrp: rest.nrp,
+      pin,
+      nama: rest.nama,
+      role: rest.role,
+      satuan: rest.satuan,
+      pangkat: rest.pangkat,
+      jabatan: rest.jabatan,
     });
-    if (error) throw error;
     await fetchUsers();
     return data;
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
-    const { error } = await supabase.from('users').update(updates).eq('id', id);
-    if (error) throw error;
+    await patchUser(id, updates);
     await fetchUsers();
   };
 
@@ -67,11 +56,7 @@ export function useUsers(options: UseUsersOptions = {}) {
   };
 
   const resetUserPin = async (userId: string, newPin: string) => {
-    const { error } = await supabase.rpc('reset_user_pin', {
-      p_user_id: userId,
-      p_new_pin: newPin,
-    });
-    if (error) throw error;
+    await apiResetUserPin(userId, newPin);
   };
 
   return { users, isLoading, error, refetch: fetchUsers, createUser, updateUser, toggleUserActive, resetUserPin };

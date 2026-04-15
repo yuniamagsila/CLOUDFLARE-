@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchAuditLogs as apiFetchAuditLogs } from '../lib/api/auditLogs';
+import { handleError } from '../lib/handleError';
 import type { AuditLog } from '../types';
 
 interface UseAuditLogsOptions {
@@ -17,20 +18,10 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from('audit_logs')
-        .select('*, user:user_id(id,nama,nrp,role)')
-        .order('created_at', { ascending: false })
-        .limit(options.limit ?? 100);
-
-      if (options.userId) query = query.eq('user_id', options.userId);
-      if (options.action) query = query.eq('action', options.action);
-
-      const { data, error: err } = await query;
-      if (err) throw err;
-      setLogs((data as AuditLog[]) ?? []);
+      const data = await apiFetchAuditLogs({ userId: options.userId, action: options.action, limit: options.limit });
+      setLogs(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat audit log');
+      setError(handleError(err, 'Gagal memuat audit log'));
     } finally {
       setIsLoading(false);
     }

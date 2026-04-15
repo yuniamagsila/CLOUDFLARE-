@@ -1,21 +1,28 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchGatePassesByUser, insertGatePass } from '../lib/api/gatepass';
+import { handleError } from '../lib/handleError';
 import { GatePass } from '../types/gatepass';
 import { generateQrToken } from '../utils/gatepass';
 import { useAuthStore } from '../store/authStore';
 
 export function useGatePass() {
   const [gatePasses, setGatePasses] = useState<GatePass[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const user = useAuthStore(s => s.user);
 
   const fetchGatePasses = useCallback(async () => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from('gate_pass')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (!error && data) setGatePasses(data);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchGatePassesByUser(user.id);
+      setGatePasses(data);
+    } catch (err) {
+      setError(handleError(err, 'Gagal memuat gate pass'));
+    } finally {
+      setIsLoading(false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -26,12 +33,9 @@ export function useGatePass() {
   async function createGatePass(input: Partial<GatePass>) {
     if (!user) return;
     const qr_token = generateQrToken();
-    const { error } = await supabase.from('gate_pass').insert([
-      { ...input, user_id: user.id, qr_token }
-    ]);
-    if (error) throw error;
+    await insertGatePass({ ...input, user_id: user.id, qr_token });
     await fetchGatePasses();
   }
 
-  return { gatePasses, fetchGatePasses, createGatePass };
+  return { gatePasses, isLoading, error, fetchGatePasses, createGatePass };
 }

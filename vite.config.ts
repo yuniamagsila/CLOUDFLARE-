@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { resolve } from 'node:path';
 
 // Vite config untuk Netlify (React + TailwindCSS)
 // Checklist:
@@ -16,6 +17,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
@@ -37,6 +43,8 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js'],
           state: ['zustand'],
+          icons: ['lucide-react'],
+          qr: ['html5-qrcode', 'qrcode.react', 'react-qr-code'],
         },
       },
     },

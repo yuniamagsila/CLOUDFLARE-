@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { fetchGatePassesByUser, insertGatePass, patchGatePassStatus, rpcScanGatePass } from '../lib/api/gatepass';
 import { GatePass, GatePassStatus } from '../types/gatepass';
 import { generateQrToken } from '../utils/gatepass';
 import { useAuthStore } from './authStore';
@@ -28,21 +29,15 @@ export const useGatePassStore = create<GatePassState>((set, get) => {
     async fetchGatePasses() {
       const user = useAuthStore.getState().user;
       if (!user) throw new Error('User tidak ditemukan');
-      const { data, error } = await supabase
-        .from('gate_pass')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      set({ gatePasses: data ?? [] });
+      const data = await fetchGatePassesByUser(user.id);
+      set({ gatePasses: data });
     },
 
     async createGatePass(payload) {
       const user = useAuthStore.getState().user;
       if (!user) throw new Error('User tidak ditemukan');
       const qr_token = generateQrToken();
-      const { error } = await supabase.from('gate_pass').insert([{ ...payload, user_id: user.id, qr_token }]);
-      if (error) throw error;
+      await insertGatePass({ ...payload, user_id: user.id, qr_token });
       await get().fetchGatePasses();
     },
 
@@ -50,11 +45,7 @@ export const useGatePassStore = create<GatePassState>((set, get) => {
       const user = useAuthStore.getState().user;
       if (!user) throw new Error('User tidak ditemukan');
       const status: GatePassStatus = approved ? 'approved' : 'rejected';
-      const { error } = await supabase
-        .from('gate_pass')
-        .update({ status, approved_by: user.id })
-        .eq('id', id);
-      if (error) throw error;
+      await patchGatePassStatus(id, status, user.id);
       await get().fetchGatePasses();
     },
 
@@ -63,17 +54,9 @@ export const useGatePassStore = create<GatePassState>((set, get) => {
       if (!user || (user.role !== 'guard' && user.role !== 'admin')) {
         throw new Error('Akses hanya untuk petugas jaga');
       }
-
-      const { data: rpcData, error: rpcError } = await supabase.rpc('server_scan_gate_pass', {
-        p_qr_token: qrToken,
-      });
-
-      if (rpcError || !rpcData) {
-        throw new Error(rpcError?.message ?? 'QR tidak valid');
-      }
-
+      const message = await rpcScanGatePass(qrToken);
       await get().fetchGatePasses();
-      return (rpcData as any).message ?? 'Scan berhasil';
+      return message;
     },
   };
 });

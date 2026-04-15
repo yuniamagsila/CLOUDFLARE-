@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { fetchInbox, fetchSent, insertMessage, markMessageRead as apiMarkRead, markAllMessagesRead as apiMarkAllRead } from '../lib/api/messages';
+import { handleError } from '../lib/handleError';
 import type { Message } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -17,28 +19,15 @@ export function useMessages() {
     setIsLoading(true);
     setError(null);
     try {
-      const [inboxRes, sentRes] = await Promise.all([
-        supabase
-          .from('messages')
-          .select('*, sender:from_user(id,nama,nrp,pangkat), receiver:to_user(id,nama,nrp)')
-          .eq('to_user', user.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('messages')
-          .select('*, sender:from_user(id,nama,nrp), receiver:to_user(id,nama,nrp,pangkat)')
-          .eq('from_user', user.id)
-          .order('created_at', { ascending: false }),
+      const [inboxData, sentData] = await Promise.all([
+        fetchInbox(user.id),
+        fetchSent(user.id),
       ]);
-
-      if (inboxRes.error) throw inboxRes.error;
-      if (sentRes.error) throw sentRes.error;
-
-      const inboxData = (inboxRes.data as Message[]) ?? [];
       setInbox(inboxData);
-      setSent((sentRes.data as Message[]) ?? []);
+      setSent(sentData);
       setUnreadCount(inboxData.filter((m) => !m.is_read).length);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat pesan');
+      setError(handleError(err, 'Gagal memuat pesan'));
     } finally {
       setIsLoading(false);
     }
@@ -77,21 +66,12 @@ export function useMessages() {
 
   const sendMessage = async (toUserId: string, isi: string) => {
     if (!user) throw new Error('Not authenticated');
-    const { error } = await supabase.from('messages').insert({
-      from_user: user.id,
-      to_user: toUserId,
-      isi,
-    });
-    if (error) throw error;
+    await insertMessage(user.id, toUserId, isi);
     await fetchMessages();
   };
 
   const markAsRead = async (messageId: string) => {
-    const { error } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('id', messageId);
-    if (error) throw error;
+    await apiMarkRead(messageId);
     setInbox((prev) =>
       prev.map((m) => (m.id === messageId ? { ...m, is_read: true } : m)),
     );
@@ -100,12 +80,7 @@ export function useMessages() {
 
   const markAllAsRead = async () => {
     if (!user) return;
-    const { error } = await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('to_user', user.id)
-      .eq('is_read', false);
-    if (error) throw error;
+    await apiMarkAllRead(user.id);
     setInbox((prev) => prev.map((m) => ({ ...m, is_read: true })));
     setUnreadCount(0);
   };

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchAnnouncements as apiFetchAnnouncements, insertAnnouncement, patchAnnouncement, deleteAnnouncement as apiDeleteAnnouncement } from '../lib/api/announcements';
+import { handleError } from '../lib/handleError';
 import type { Announcement, Role } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -13,16 +14,10 @@ export function useAnnouncements() {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: err } = await supabase
-        .from('announcements')
-        .select('*, creator:created_by(id,nama,nrp,role)')
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      if (err) throw err;
-      setAnnouncements((data as Announcement[]) ?? []);
+      const data = await apiFetchAnnouncements();
+      setAnnouncements(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat pengumuman');
+      setError(handleError(err, 'Gagal memuat pengumuman'));
     } finally {
       setIsLoading(false);
     }
@@ -39,23 +34,17 @@ export function useAnnouncements() {
     target_satuan?: string;
     is_pinned?: boolean;
   }) => {
-    const { error } = await supabase.from('announcements').insert({
-      ...data,
-      created_by: user?.id,
-    });
-    if (error) throw error;
+    await insertAnnouncement({ ...data, created_by: user?.id });
     await fetchAnnouncements();
   };
 
   const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
-    const { error } = await supabase.from('announcements').update(updates).eq('id', id);
-    if (error) throw error;
+    await patchAnnouncement(id, updates);
     await fetchAnnouncements();
   };
 
   const deleteAnnouncement = async (id: string) => {
-    const { error } = await supabase.from('announcements').delete().eq('id', id);
-    if (error) throw error;
+    await apiDeleteAnnouncement(id);
     await fetchAnnouncements();
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { fetchLeaveRequests as apiFetchLeaveRequests, insertLeaveRequest, patchLeaveRequestStatus } from '../lib/api/leaveRequests';
+import { handleError } from '../lib/handleError';
 import type { LeaveRequest, LeaveStatus } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -18,17 +19,7 @@ export function useLeaveRequests(options: UseLeaveRequestsOptions = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from('leave_requests')
-        .select('*, user:user_id(id,nama,nrp,pangkat,satuan), reviewer:reviewed_by(id,nama)')
-        .order('created_at', { ascending: false });
-
-      if (options.userId) query = query.eq('user_id', options.userId);
-
-      const { data, error: err } = await query;
-      if (err) throw err;
-
-      let result = (data as LeaveRequest[]) ?? [];
+      let result = await apiFetchLeaveRequests({ userId: options.userId });
 
       // Filter by satuan if specified (via joined user data)
       if (options.satuan) {
@@ -37,7 +28,7 @@ export function useLeaveRequests(options: UseLeaveRequestsOptions = {}) {
 
       setRequests(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat permintaan izin');
+      setError(handleError(err, 'Gagal memuat permintaan izin'));
     } finally {
       setIsLoading(false);
     }
@@ -54,26 +45,13 @@ export function useLeaveRequests(options: UseLeaveRequestsOptions = {}) {
     alasan: string;
   }) => {
     if (!user) throw new Error('Not authenticated');
-    const { error } = await supabase.from('leave_requests').insert({
-      ...data,
-      user_id: user.id,
-      status: 'pending',
-    });
-    if (error) throw error;
+    await insertLeaveRequest({ ...data, user_id: user.id });
     await fetchRequests();
   };
 
   const reviewLeaveRequest = async (id: string, status: LeaveStatus) => {
     if (!user) throw new Error('Not authenticated');
-    const { error } = await supabase
-      .from('leave_requests')
-      .update({
-        status,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (error) throw error;
+    await patchLeaveRequestStatus(id, status, user.id);
     await fetchRequests();
   };
 

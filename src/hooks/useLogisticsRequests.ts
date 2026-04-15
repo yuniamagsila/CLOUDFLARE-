@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { fetchLogisticsRequests as apiFetchLogistics, insertLogisticsRequest, patchLogisticsRequestStatus } from '../lib/api/logistics';
+import { handleError } from '../lib/handleError';
 import type { LogisticsRequest, LogisticsRequestStatus } from '../types';
 import { useAuthStore } from '../store/authStore';
 
@@ -19,19 +21,10 @@ export function useLogisticsRequests(options: UseLogisticsRequestsOptions = {}) 
     setIsLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from('logistics_requests')
-        .select('*, requester:requested_by(id,nama,nrp,pangkat,satuan), reviewer:reviewed_by(id,nama)')
-        .order('created_at', { ascending: false });
-
-      if (options.requestedBy) query = query.eq('requested_by', options.requestedBy);
-      if (options.satuan) query = query.eq('satuan', options.satuan);
-
-      const { data, error: err } = await query;
-      if (err) throw err;
-      setRequests((data as LogisticsRequest[]) ?? []);
+      const data = await apiFetchLogistics({ satuan: options.satuan, requestedBy: options.requestedBy });
+      setRequests(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat permintaan logistik');
+      setError(handleError(err, 'Gagal memuat permintaan logistik'));
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +67,7 @@ export function useLogisticsRequests(options: UseLogisticsRequestsOptions = {}) 
     alasan: string;
   }) => {
     if (!user) throw new Error('Not authenticated');
-    const { error } = await supabase.from('logistics_requests').insert({
-      ...data,
-      requested_by: user.id,
-      satuan: user.satuan,
-      status: 'pending',
-    });
-    if (error) throw error;
+    await insertLogisticsRequest({ ...data, requested_by: user.id, satuan: user.satuan });
     await fetchRequests();
   };
 
@@ -90,16 +77,7 @@ export function useLogisticsRequests(options: UseLogisticsRequestsOptions = {}) 
     adminNote?: string,
   ) => {
     if (!user) throw new Error('Not authenticated');
-    const { error } = await supabase
-      .from('logistics_requests')
-      .update({
-        status,
-        admin_note: adminNote ?? null,
-        reviewed_by: user.id,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-    if (error) throw error;
+    await patchLogisticsRequestStatus(id, status, user.id, adminNote);
     await fetchRequests();
   };
 
