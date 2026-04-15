@@ -67,30 +67,16 @@ export default function Reports() {
     if (user?.satuan) void fetchData();
   }, [user, fetchData]);
 
-  // Gunakan ref agar tidak terjadi duplicate subscription
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
   useEffect(() => {
-    if (!user?.satuan) return undefined;
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase.channel('komandan-reports');
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchData(); });
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void fetchData(); });
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => { void fetchData(); });
-    channel.subscribe();
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [fetchData, user?.satuan]);
+    if (!user?.satuan) return;
+    const channel = supabase
+      .channel('komandan-reports')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => { void fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const leaveByStatus = useMemo(() => ({
     pending: leaveRequests.filter((r) => r.status === 'pending').length,

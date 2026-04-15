@@ -43,29 +43,15 @@ export default function KomandanDashboard() {
     void fetchStats();
   }, [fetchStats]);
 
-  // Gunakan ref agar tidak terjadi duplicate subscription
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
   useEffect(() => {
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase.channel('komandan-dashboard');
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { void fetchStats(); });
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void refetchTasks(); });
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void fetchStats(); });
-    channel.subscribe();
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [fetchStats, refetchTasks]);
+    const channel = supabase
+      .channel('komandan-dashboard')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => { void fetchStats(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => { void refetchTasks(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void fetchStats(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const pendingTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress');
   const doneTasks = tasks.filter((t) => t.status === 'done');

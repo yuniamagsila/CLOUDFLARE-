@@ -12,15 +12,14 @@ interface GatePassState {
   scanGatePass: (qrToken: string) => Promise<string>;
 }
 
-let gatePassChannel: unknown = null;
 export const useGatePassStore = create<GatePassState>((set, get) => {
-  if (typeof window !== 'undefined' && !gatePassChannel) {
-    const channel = supabase.channel('gate-pass-realtime');
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass' }, () => {
-      void get().fetchGatePasses();
-    });
-    channel.subscribe();
-    gatePassChannel = channel;
+  if (typeof window !== 'undefined') {
+    supabase
+      .channel('gate-pass-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gate_pass' }, () => {
+        void get().fetchGatePasses();
+      })
+      .subscribe();
   }
 
   return {

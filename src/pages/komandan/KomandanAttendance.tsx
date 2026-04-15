@@ -48,28 +48,14 @@ export default function KomandanAttendance() {
 
   useEffect(() => { void fetchAttendance(); }, [fetchAttendance]);
 
-  // Gunakan ref agar tidak terjadi duplicate subscription
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
   useEffect(() => {
-    if (!user?.satuan) return undefined;
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
-
-    const channel = supabase.channel('komandan-attendance');
-    channel.on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchAttendance(); });
-    channel.subscribe();
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [fetchAttendance, user?.satuan]);
+    if (!user?.satuan) return;
+    const channel = supabase
+      .channel('komandan-attendance')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => { void fetchAttendance(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const total = attendances.length;
   const hadir = attendances.filter((a) => a.status === 'hadir').length;
