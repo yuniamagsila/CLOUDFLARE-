@@ -9,6 +9,7 @@
 export { useGatePass } from '@/hooks/useGatePass';
 export { useGatePassStore } from '@/store/gatePassStore';
 export { useOverdueNotification } from '@/hooks/useOverdueNotification';
+export { useGatePassRealtime } from '@/hooks/useGatePassRealtime';
 export { default as GatePassForm } from '@/components/gatepass/GatePassForm';
 export { default as GatePassList } from '@/components/gatepass/GatePassList';
 export { default as GatePassQRCode } from '@/components/gatepass/GatePassQRCode';
@@ -16,4 +17,4 @@ export { default as GatePassScanner } from '@/components/gatepass/GatePassScanne
 export { default as GatePassStatusBadge } from '@/components/gatepass/GatePassStatusBadge';
 export { default as QRScanner } from '@/components/guard/QRScanner';
 export { default as ScanResultCard } from '@/components/guard/ScanResultCard';
-export type { GatePass, GatePassStatus } from '@/types/gatepass';
+export type { GatePass, GatePassStatus } from '@/types';

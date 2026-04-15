@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import type { GatePass } from '../../types/gatepass';
+import type { GatePass } from '../../types';
 
 export async function fetchGatePassesByUser(userId: string): Promise<GatePass[]> {
   const { data, error } = await supabase
@@ -29,6 +29,16 @@ export async function fetchAllGatePasses(): Promise<GatePass[]> {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data as GatePass[]) ?? [];
+}
+
+export async function fetchGatePassByQrToken(qrToken: string): Promise<GatePass | null> {
+  const { data, error } = await supabase
+    .from('gate_pass')
+    .select('*, user:user_id(id,nama,nrp,pangkat,satuan)')
+    .eq('qr_token', qrToken)
+    .single();
+  if (error) return null;
+  return (data as GatePass) ?? null;
 }
 
 export async function insertGatePass(payload: Partial<GatePass> & { user_id: string; qr_token: string }): Promise<void> {

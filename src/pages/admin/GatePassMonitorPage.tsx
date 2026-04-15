@@ -1,13 +1,15 @@
 import { useEffect } from 'react';
 import { useGatePassStore } from '../../store/gatePassStore';
+import { useGatePassRealtime } from '../../hooks/useGatePassRealtime';
 import GatePassStatusBadge from '../../components/gatepass/GatePassStatusBadge';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 
 export default function GatePassMonitorPage() {
   const gatePasses = useGatePassStore(s => s.gatePasses);
   const fetchGatePasses = useGatePassStore(s => s.fetchGatePasses);
+  useGatePassRealtime();
 
-  useEffect(() => { fetchGatePasses(); }, [fetchGatePasses]);
+  useEffect(() => { void fetchGatePasses(); }, [fetchGatePasses]);
 
   const keluar = gatePasses.filter(gp => gp.status === 'out');
   const overdue = gatePasses.filter(gp => gp.status === 'overdue');
@@ -22,6 +24,9 @@ export default function GatePassMonitorPage() {
           {keluar.map(gp => (
             <div key={gp.id} className="p-3 border rounded flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
               <div>
+                {gp.user && (
+                  <div className="text-sm font-semibold text-primary mb-0.5">{gp.user.nama} ({gp.user.nrp})</div>
+                )}
                 <div className="font-bold">{gp.tujuan}</div>
                 <div className="text-xs text-text-muted">{gp.keperluan}</div>
                 <div className="text-xs">{gp.waktu_keluar} - {gp.waktu_kembali}</div>
@@ -36,6 +41,9 @@ export default function GatePassMonitorPage() {
           {overdue.map(gp => (
             <div key={gp.id} className="p-3 border border-error/40 bg-error/5 rounded flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
               <div>
+                {gp.user && (
+                  <div className="text-sm font-semibold text-accent-red mb-0.5">{gp.user.nama} ({gp.user.nrp})</div>
+                )}
                 <div className="font-bold">{gp.tujuan}</div>
                 <div className="text-xs text-text-muted">{gp.keperluan}</div>
                 <div className="text-xs">{gp.waktu_keluar} - {gp.waktu_kembali}</div>

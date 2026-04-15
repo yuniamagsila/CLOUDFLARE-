@@ -50,7 +50,7 @@ export default function KomandanDashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, () => { void fetchStats(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [fetchStats, refetchTasks]);
 
   const pendingTasks = tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress');
   const doneTasks = tasks.filter((t) => t.status === 'done');

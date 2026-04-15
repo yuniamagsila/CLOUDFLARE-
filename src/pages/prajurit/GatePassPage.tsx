@@ -3,6 +3,7 @@ import GatePassForm from '../../components/gatepass/GatePassForm';
 import GatePassList from '../../components/gatepass/GatePassList';
 import { useGatePassStore } from '../../store/gatePassStore';
 import { useOverdueNotification } from '../../hooks/useOverdueNotification';
+import { useGatePassRealtime } from '../../hooks/useGatePassRealtime';
 import { useUIStore } from '../../store/uiStore';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 
@@ -11,8 +12,9 @@ export default function GatePassPage() {
   const fetchGatePasses = useGatePassStore(s => s.fetchGatePasses);
   const overdue = useOverdueNotification();
   const { showNotification } = useUIStore();
+  useGatePassRealtime();
 
-  useEffect(() => { fetchGatePasses(); }, [fetchGatePasses]);
+  useEffect(() => { void fetchGatePasses(); }, [fetchGatePasses]);
 
   // Tampilkan notifikasi overdue via sistem notification
   useEffect(() => {
