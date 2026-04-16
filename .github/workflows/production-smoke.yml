@@ -6,7 +6,7 @@ on:
       base_url:
         description: Production URL to test
         required: true
-        default: https://yuniamagsila.github.io/v/
+        default: https://karyo-os.pages.dev
         type: string
 
 permissions:
