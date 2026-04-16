@@ -339,14 +339,14 @@ VITE_APP_VERSION=1.0.0
 
 > **Penting:** Semua env variable frontend React **wajib** diawali `VITE_`. File `.env.local` tidak boleh di-commit ke Git (sudah ada di `.gitignore`).
 
-Untuk production, simpan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` di GitHub repository secrets / environment yang dipakai workflow. Secara lokal, `.env.local` tetap dipakai oleh `bash scripts/deploy.sh`. Contoh format:
+Untuk production, simpan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` di GitHub repository secrets atau variables yang dipakai workflow. Secara lokal, `.env.local` tetap dipakai oleh `bash scripts/deploy.sh`. Contoh format:
 
 ```bash
 VITE_SUPABASE_URL="https://xxxx.supabase.co"
 VITE_SUPABASE_ANON_KEY="eyJhbGci..."
 ```
 
-Jika ingin workflow GitHub Actions juga menjalankan migration database saat deploy, tambahkan secret berikut:
+Jika ingin workflow GitHub Actions juga menjalankan migration database saat deploy, tambahkan secrets atau variables berikut:
 
 ```bash
 SUPABASE_ACCESS_TOKEN="<personal access token>"
@@ -354,7 +354,7 @@ SUPABASE_PROJECT_REF="<reference id project>"
 SUPABASE_DB_PASSWORD="<password database postgres>"
 ```
 
-Workflow deploy produksi akan menjalankan `supabase link` lalu `supabase db push` sebelum build frontend, selama ketiga secret tersebut tersedia.
+Workflow deploy produksi akan menjalankan `supabase link` lalu `supabase db push` sebelum build frontend, selama ketiga nilai tersebut tersedia.
 
 ---
 
