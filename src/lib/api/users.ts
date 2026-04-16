@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { User, Role } from '../../types';
 
 const USER_COLUMNS =
@@ -13,16 +13,18 @@ export interface FetchUsersParams {
 }
 
 export async function fetchUsers(params: FetchUsersParams = {}): Promise<User[]> {
-  let query = supabase
-    .from('users')
-    .select(USER_COLUMNS)
-    .order(params.orderBy ?? 'nama', { ascending: params.ascending ?? true });
-  if (params.role) query = query.eq('role', params.role);
-  if (params.satuan) query = query.eq('satuan', params.satuan);
-  if (params.isActive !== undefined) query = query.eq('is_active', params.isActive);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data as User[]) ?? [];
+  const data = await apiRequest<User[]>('/users', {
+    query: {
+      role: params.role,
+      satuan: params.satuan,
+      is_active: params.isActive,
+      order_by: params.orderBy ?? 'nama',
+      ascending: params.ascending ?? true,
+      columns: USER_COLUMNS,
+    },
+  });
+
+  return data ?? [];
 }
 
 export async function createUserWithPin(userData: {
@@ -34,36 +36,36 @@ export async function createUserWithPin(userData: {
   pangkat?: string;
   jabatan?: string;
 }): Promise<unknown> {
-  const { data, error } = await supabase.rpc('create_user_with_pin', {
-    p_nrp: userData.nrp,
-    p_pin: userData.pin,
-    p_nama: userData.nama,
-    p_role: userData.role,
-    p_satuan: userData.satuan,
-    p_pangkat: userData.pangkat ?? null,
-    p_jabatan: userData.jabatan ?? null,
+  return apiRequest<unknown>('/users', {
+    method: 'POST',
+    body: {
+      nrp: userData.nrp,
+      pin: userData.pin,
+      nama: userData.nama,
+      role: userData.role,
+      satuan: userData.satuan,
+      pangkat: userData.pangkat ?? null,
+      jabatan: userData.jabatan ?? null,
+    },
   });
-  if (error) throw error;
-  return data;
 }
 
 export async function patchUser(id: string, updates: Partial<User>): Promise<void> {
-  const { error } = await supabase.from('users').update(updates).eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/users/${id}`, {
+    method: 'PATCH',
+    body: updates,
+  });
 }
 
 export async function resetUserPin(userId: string, newPin: string): Promise<void> {
-  const { error } = await supabase.rpc('reset_user_pin', {
-    p_user_id: userId,
-    p_new_pin: newPin,
+  await apiRequest<void>(`/users/${userId}/reset-pin`, {
+    method: 'POST',
+    body: { new_pin: newPin },
   });
-  if (error) throw error;
 }
 
 export async function fetchUserById(userId: string): Promise<User> {
-  const { data, error } = await supabase.rpc('get_user_detail', { p_user_id: userId }).single();
-  if (error) throw error;
-  return data as User;
+  return apiRequest<User>(`/users/${userId}`);
 }
 
 export interface UpdateOwnProfileParams {
@@ -74,12 +76,13 @@ export interface UpdateOwnProfileParams {
 }
 
 export async function updateOwnProfile(userId: string, params: UpdateOwnProfileParams): Promise<void> {
-  const { error } = await supabase.rpc('update_own_profile', {
-    p_user_id: userId,
-    p_no_telepon: params.no_telepon ?? null,
-    p_alamat: params.alamat ?? null,
-    p_kontak_darurat_nama: params.kontak_darurat_nama ?? null,
-    p_kontak_darurat_telp: params.kontak_darurat_telp ?? null,
+  await apiRequest<void>(`/users/${userId}/profile`, {
+    method: 'PATCH',
+    body: {
+      no_telepon: params.no_telepon ?? null,
+      alamat: params.alamat ?? null,
+      kontak_darurat_nama: params.kontak_darurat_nama ?? null,
+      kontak_darurat_telp: params.kontak_darurat_telp ?? null,
+    },
   });
-  if (error) throw error;
 }

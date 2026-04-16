@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { apiRequest } from '../lib/api/client';
 import type { User, KaryoSession } from '../types';
 
 const SESSION_KEY = 'karyo_session';
@@ -114,12 +114,12 @@ const clearSession = (): void => {
   sessionStorage.removeItem(CRYPTO_KEY_SESSION);
 };
 
-// ── RPC response types ───────────────────────────────────────────
-
-/** Row returned by the `verify_user_pin` Supabase RPC. */
-interface VerifyUserPinRow {
-  user_id: string;
-  user_role: string;
+interface AuthLoginResponse {
+  user: User;
+  session: {
+    user_id: string;
+    role: User['role'];
+  };
 }
 
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -134,43 +134,17 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   login: async (nrp: string, pin: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Step 1: Verify PIN and get user_id, user_role
-      const { data, error } = await supabase.rpc('verify_user_pin', { p_nrp: nrp, p_pin: pin }).maybeSingle();
-      if (error) throw new Error('Terjadi kesalahan sistem. Coba lagi nanti.');
-      const row = data as VerifyUserPinRow | null;
-      if (!row) throw new Error('NRP atau PIN salah. Periksa kembali dan coba lagi.');
-
-      const { user_id, user_role } = row;
-
-      // Step 1b: Bind role/user context for RLS-based queries.
-      await supabase.rpc('set_session_context', {
-        p_user_id: user_id,
-        p_role: user_role,
+      const data = await apiRequest<AuthLoginResponse>('/auth/login', {
+        method: 'POST',
+        body: { nrp, pin },
       });
 
-      // Step 2: Get user data via RPC (not direct select)
-      const { data: userData, error: userError } = await supabase.rpc('get_user_by_id', { p_user_id: user_id }).single();
-      if (userError || !userData) throw new Error('Data pengguna tidak ditemukan.');
-
-      const user = userData as User;
-
-      // Step 3: Update last_login and is_online via RPC
-      await supabase.rpc('update_user_login', {
-        p_user_id: user_id,
-        p_last_login: new Date().toISOString(),
-        p_is_online: true
+      await saveSession({
+        user_id: data.session.user_id,
+        role: data.session.role,
+        expires_at: makeSessionExpiry(),
       });
-
-      // Step 4: Log the login action via RPC
-      await supabase.rpc('insert_audit_log', {
-        p_user_id: user_id,
-        p_action: 'LOGIN',
-        p_resource: 'auth',
-        p_detail: JSON.stringify({ nrp, role: user_role })
-      });
-
-      await saveSession({ user_id, role: user_role as User['role'], expires_at: makeSessionExpiry() });
-      set({ user, isAuthenticated: true, isLoading: false, error: null });
+      set({ user: data.user, isAuthenticated: true, isLoading: false, error: null });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan sistem. Coba lagi nanti.';
       set({ isLoading: false, error: message, isAuthenticated: false, user: null });
@@ -181,15 +155,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   logout: async () => {
     const { user } = get();
     if (user) {
-      await supabase.rpc('update_user_login', {
-        p_user_id: user.id,
-        p_is_online: false
-      });
-      await supabase.rpc('insert_audit_log', {
-        p_user_id: user.id,
-        p_action: 'LOGOUT',
-        p_resource: 'auth',
-        p_detail: null
+      await apiRequest<void>('/auth/logout', {
+        method: 'POST',
+        body: { user_id: user.id },
       });
     }
     clearSession();
@@ -204,18 +172,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       return;
     }
     try {
-      await supabase.rpc('set_session_context', {
-        p_user_id: session.user_id,
-        p_role: session.role,
+      const user = await apiRequest<User>('/auth/session', {
+        method: 'POST',
+        body: {
+          user_id: session.user_id,
+          role: session.role,
+        },
       });
-
-      const { data: userData, error } = await supabase.rpc('get_user_by_id', { p_user_id: session.user_id }).single();
-      if (error || !userData) {
-        clearSession();
-        set({ isLoading: false, isInitialized: true });
-        return;
-      }
-      const user = userData as User;
       set({ user, isAuthenticated: true, isLoading: false, isInitialized: true });
     } catch {
       clearSession();
@@ -226,9 +189,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   updateOnlineStatus: async (status: boolean) => {
     const { user } = get();
     if (!user) return;
-    await supabase.rpc('update_user_login', {
-      p_user_id: user.id,
-      p_is_online: status
+    await apiRequest<void>('/auth/online-status', {
+      method: 'POST',
+      body: {
+        user_id: user.id,
+        is_online: status,
+      },
     });
     set({ user: { ...user, is_online: status } });
   },

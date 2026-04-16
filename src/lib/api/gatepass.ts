@@ -1,49 +1,53 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { GatePass } from '../../types';
 
 export async function fetchGatePassesByUser(userId: string): Promise<GatePass[]> {
-  const { data, error } = await supabase
-    .from('gate_pass')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as GatePass[]) ?? [];
+  const data = await apiRequest<GatePass[]>('/gatepass', {
+    query: {
+      user_id: userId,
+      order_by: 'created_at',
+      ascending: false,
+    },
+  });
+  return data ?? [];
 }
 
 export async function fetchGatePassesByUserAndStatus(userId: string, status: GatePass['status']): Promise<GatePass[]> {
-  const { data, error } = await supabase
-    .from('gate_pass')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('status', status)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as GatePass[]) ?? [];
+  const data = await apiRequest<GatePass[]>('/gatepass', {
+    query: {
+      user_id: userId,
+      status,
+      order_by: 'created_at',
+      ascending: false,
+    },
+  });
+  return data ?? [];
 }
 
 export async function fetchAllGatePasses(): Promise<GatePass[]> {
-  const { data, error } = await supabase
-    .from('gate_pass')
-    .select('*, user:user_id(id,nama,nrp,pangkat,satuan)')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as GatePass[]) ?? [];
+  const data = await apiRequest<GatePass[]>('/gatepass', {
+    query: {
+      include_user: true,
+      order_by: 'created_at',
+      ascending: false,
+    },
+  });
+  return data ?? [];
 }
 
 export async function fetchGatePassByQrToken(qrToken: string): Promise<GatePass | null> {
-  const { data, error } = await supabase
-    .from('gate_pass')
-    .select('*, user:user_id(id,nama,nrp,pangkat,satuan)')
-    .eq('qr_token', qrToken)
-    .single();
-  if (error) return null;
-  return (data as GatePass) ?? null;
+  try {
+    return await apiRequest<GatePass>(`/gatepass/qr/${encodeURIComponent(qrToken)}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function insertGatePass(payload: Partial<GatePass> & { user_id: string; qr_token: string }): Promise<void> {
-  const { error } = await supabase.from('gate_pass').insert([payload]);
-  if (error) throw error;
+  await apiRequest<void>('/gatepass', {
+    method: 'POST',
+    body: payload,
+  });
 }
 
 export async function patchGatePassStatus(
@@ -51,11 +55,10 @@ export async function patchGatePassStatus(
   status: GatePass['status'],
   approvedBy?: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('gate_pass')
-    .update({ status, approved_by: approvedBy })
-    .eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/gatepass/${id}/status`, {
+    method: 'PATCH',
+    body: { status, approved_by: approvedBy ?? null },
+  });
 }
 
 /** Response shape returned by the `server_scan_gate_pass` Supabase RPC. */
@@ -64,7 +67,9 @@ interface ScanGatePassResponse {
 }
 
 export async function rpcScanGatePass(qrToken: string): Promise<string> {
-  const { data, error } = await supabase.rpc('server_scan_gate_pass', { p_qr_token: qrToken });
-  if (error || !data) throw new Error(error?.message ?? 'QR tidak valid');
-  return (data as ScanGatePassResponse).message ?? 'Scan berhasil';
+  const data = await apiRequest<ScanGatePassResponse>('/gatepass/scan', {
+    method: 'POST',
+    body: { qr_token: qrToken },
+  });
+  return data?.message ?? 'Scan berhasil';
 }
