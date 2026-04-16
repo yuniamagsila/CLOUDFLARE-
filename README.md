@@ -76,7 +76,7 @@ npm run test:coverage
 Untuk menjalankan smoke test ke environment production (Playwright):
 
 ```bash
-E2E_BASE_URL=https://karyo-os-862.netlify.app npm run test:smoke:prod
+E2E_BASE_URL=https://yuniamagsila.github.io/v/ npm run test:smoke:prod
 ```
 
 Workflow GitHub Actions manual juga tersedia di `.github/workflows/production-smoke.yml`.

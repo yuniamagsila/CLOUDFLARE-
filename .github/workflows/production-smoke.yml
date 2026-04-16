@@ -6,7 +6,7 @@ on:
       base_url:
         description: Production URL to test
         required: true
-        default: https://karyo-os-862.netlify.app
+        default: https://yuniamagsila.github.io/v/
         type: string
 
 permissions:
