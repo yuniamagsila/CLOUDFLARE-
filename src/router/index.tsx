@@ -117,7 +117,7 @@ export const router = createHashRouter([
         <div className="text-center">
           <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
           <p className="text-xl text-text-muted mb-6">Halaman tidak ditemukan</p>
-          <a href="/login" className="btn-primary px-6 py-2 rounded-lg">
+          <a href={`${import.meta.env.BASE_URL}#/login`} className="btn-primary px-6 py-2 rounded-lg">
             Kembali ke Login
           </a>
         </div>

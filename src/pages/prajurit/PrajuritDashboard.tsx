@@ -11,10 +11,11 @@ import Button from '../../components/common/Button';
 import { AttendanceBadge } from '../../components/common/Badge';
 import { CardListSkeleton } from '../../components/common/Skeleton';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import PageHeader from '../../components/ui/PageHeader';
 
 export default function PrajuritDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { showNotification } = useUIStore();
   const { tasks, isLoading: tasksLoading } = useTasks({ assignedTo: user?.id });
@@ -123,9 +124,9 @@ export default function PrajuritDashboard() {
               <p className="text-xs text-text-muted mt-0.5">
                 Komandan telah memberikan catatan. Buka halaman Tugas Saya untuk melihat detail.
               </p>
-              <a href="/prajurit/tasks" className="text-xs text-accent-red underline mt-1 inline-block">
+              <Link to="/prajurit/tasks" className="text-xs text-accent-red underline mt-1 inline-block">
                 Lihat tugas yang ditolak →
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -197,7 +198,9 @@ export default function PrajuritDashboard() {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onAction={() => { window.location.href = '/prajurit/tasks'; }}
+                  onAction={() => {
+                    navigate('/prajurit/tasks');
+                  }}
                   actionLabel="Kerjakan"
                 />
               ))}

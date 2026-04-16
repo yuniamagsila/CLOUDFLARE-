@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 interface LocationState {
   message?: string;
@@ -58,12 +58,12 @@ export default function ErrorPage() {
           >
             Kembali
           </button>
-          <a
-            href="/login"
+          <Link
+            to="/login"
             className="w-full rounded-xl border border-surface/70 px-4 py-2.5 text-sm font-semibold text-text-muted transition-colors hover:border-primary hover:text-text-primary"
           >
             Kembali ke Login
-          </a>
+          </Link>
         </div>
       </div>
 

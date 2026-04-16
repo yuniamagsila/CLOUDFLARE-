@@ -105,6 +105,13 @@ function csvEscape(value: string | number | undefined) {
   return `"${text}"`;
 }
 
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function GatePassMonitorPage() {
   const gatePasses = useGatePassStore(s => s.gatePasses);
   const fetchGatePasses = useGatePassStore(s => s.fetchGatePasses);
@@ -181,6 +188,14 @@ export default function GatePassMonitorPage() {
     setEndDate('');
   };
 
+  const applyDatePreset = (days: number) => {
+    const today = new Date();
+    const from = new Date(today);
+    from.setDate(today.getDate() - (days - 1));
+    setStartDate(toDateInputValue(from));
+    setEndDate(toDateInputValue(today));
+  };
+
   const handleExportCsv = () => {
     if (filteredRows.length === 0) return;
 
@@ -188,6 +203,8 @@ export default function GatePassMonitorPage() {
       'ID',
       'Nama',
       'NRP',
+      'Pangkat',
+      'Satuan',
       'Status',
       'Tujuan',
       'Keperluan',
@@ -205,6 +222,8 @@ export default function GatePassMonitorPage() {
         gp.id,
         gp.user?.nama ?? '-',
         gp.user?.nrp ?? '-',
+        gp.user?.pangkat ?? '-',
+        gp.user?.satuan ?? '-',
         gp.effectiveStatus,
         gp.tujuan,
         gp.keperluan,
@@ -226,6 +245,71 @@ export default function GatePassMonitorPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handlePrintReport = () => {
+    if (filteredRows.length === 0) return;
+
+    const rows = filteredRows
+      .map((gp) => {
+        const nama = gp.user?.nama ?? '-';
+        const nrp = gp.user?.nrp ?? '-';
+        const satuan = gp.user?.satuan ?? '-';
+        return `
+          <tr>
+            <td>${nama}</td>
+            <td>${nrp}</td>
+            <td>${satuan}</td>
+            <td>${gp.effectiveStatus}</td>
+            <td>${gp.tujuan}</td>
+            <td>${formatDateTime(gp.waktu_keluar)}</td>
+            <td>${formatDateTime(gp.waktu_kembali)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const popup = window.open('', '_blank', 'width=1200,height=800');
+    if (!popup) return;
+
+    popup.document.write(`
+      <!doctype html>
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Laporan Monitoring Gate Pass</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 24px; }
+          h1 { margin: 0 0 8px 0; }
+          p { margin: 0 0 16px 0; color: #4b5563; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; text-align: left; }
+          th { background: #f3f4f6; }
+        </style>
+      </head>
+      <body>
+        <h1>Laporan Monitoring Gate Pass</h1>
+        <p>Dicetak: ${new Date().toLocaleString('id-ID')} | Total data: ${filteredRows.length}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>NRP</th>
+              <th>Satuan</th>
+              <th>Status</th>
+              <th>Tujuan</th>
+              <th>Waktu Keluar</th>
+              <th>Batas Kembali</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </body>
+      </html>
+    `);
+    popup.document.close();
+    popup.focus();
+    popup.print();
+  };
+
   if (isInitialLoading) {
     return (
       <DashboardLayout title="Monitoring Gate Pass">
@@ -244,6 +328,7 @@ export default function GatePassMonitorPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={resetFilters}>Reset Filter</Button>
+            <Button variant="outline" onClick={handlePrintReport} disabled={filteredRows.length === 0}>Print Laporan</Button>
             <Button variant="outline" onClick={handleExportCsv} disabled={filteredRows.length === 0}>Export CSV</Button>
             <Button variant="outline" onClick={() => void handleRefresh()} isLoading={isRefreshing}>Muat Ulang</Button>
           </div>
@@ -308,6 +393,11 @@ export default function GatePassMonitorPage() {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => applyDatePreset(1)}>Hari ini</Button>
+            <Button variant="ghost" size="sm" onClick={() => applyDatePreset(7)}>7 hari</Button>
+            <Button variant="ghost" size="sm" onClick={() => applyDatePreset(30)}>30 hari</Button>
           </div>
           <p className="mt-2 text-xs text-text-muted">
             Urutan prioritas: overdue terlama, lalu out terdekat batas kembali, lalu status lainnya.

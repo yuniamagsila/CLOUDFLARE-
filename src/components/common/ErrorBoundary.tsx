@@ -11,6 +11,8 @@ interface State {
   error: Error | null;
 }
 
+const loginHref = `${import.meta.env.BASE_URL}#/login`;
+
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -63,7 +65,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 Coba Lagi
               </button>
               <a
-                href="/login"
+                href={loginHref}
                 className="w-full rounded-xl border border-surface/70 px-4 py-2.5 text-sm font-semibold text-text-primary transition-colors hover:border-primary"
               >
                 Kembali ke Login

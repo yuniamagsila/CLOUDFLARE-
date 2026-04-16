@@ -205,4 +205,55 @@ describe('GatePassMonitorPage', () => {
 
     clickSpy.mockRestore();
   });
+
+  it('applies quick date preset 7 hari', async () => {
+    mockState.gatePasses = [makeGatePass({ id: 'preset-1', tujuan: 'Preset Test' })];
+
+    render(<GatePassMonitorPage />);
+
+    await waitFor(() => expect(screen.getByText('Monitoring Gate Pass')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: '7 hari' }));
+
+    expect(screen.getByLabelText('Tanggal keluar dari')).not.toHaveValue('');
+    expect(screen.getByLabelText('Tanggal keluar sampai')).not.toHaveValue('');
+  });
+
+  it('opens print window and triggers print for filtered rows', async () => {
+    mockState.gatePasses = [
+      makeGatePass({
+        id: 'print-1',
+        tujuan: 'Print Test',
+        status: 'overdue',
+        user: { id: 'u1', nama: 'Andi', nrp: '12345', role: 'prajurit', satuan: 'A', is_active: true, is_online: true, login_attempts: 0, created_at: '2026-04-16T00:00:00Z', updated_at: '2026-04-16T00:00:00Z' },
+      }),
+    ];
+
+    const writeMock = vi.fn();
+    const closeMock = vi.fn();
+    const focusMock = vi.fn();
+    const printMock = vi.fn();
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue({
+      document: {
+        write: writeMock,
+        close: closeMock,
+      } as unknown as Document,
+      focus: focusMock,
+      print: printMock,
+    } as unknown as Window);
+
+    render(<GatePassMonitorPage />);
+
+    await waitFor(() => expect(screen.getByText('Monitoring Gate Pass')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Print Laporan' }));
+
+    expect(openSpy).toHaveBeenCalled();
+    expect(writeMock).toHaveBeenCalled();
+    expect(closeMock).toHaveBeenCalled();
+    expect(focusMock).toHaveBeenCalled();
+    expect(printMock).toHaveBeenCalled();
+
+    openSpy.mockRestore();
+  });
 });
