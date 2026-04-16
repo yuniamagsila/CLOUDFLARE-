@@ -346,6 +346,16 @@ VITE_SUPABASE_URL="https://xxxx.supabase.co"
 VITE_SUPABASE_ANON_KEY="eyJhbGci..."
 ```
 
+Jika ingin workflow GitHub Actions juga menjalankan migration database saat deploy, tambahkan secret berikut:
+
+```bash
+SUPABASE_ACCESS_TOKEN="<personal access token>"
+SUPABASE_PROJECT_REF="<reference id project>"
+SUPABASE_DB_PASSWORD="<password database postgres>"
+```
+
+Workflow deploy produksi akan menjalankan `supabase link` lalu `supabase db push` sebelum build frontend, selama ketiga secret tersebut tersedia.
+
 ---
 
 ## Database Schema

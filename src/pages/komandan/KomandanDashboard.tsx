@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard, { StatsGrid } from '../../components/ui/StatCard';
 import TaskCard from '../../components/ui/TaskCard';
@@ -12,6 +12,7 @@ import { useAuthStore } from '../../store/authStore';
 import { supabase } from '../../lib/supabase';
 
 export default function KomandanDashboard() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { tasks, isLoading: tasksLoading, refetch: refetchTasks } = useTasks({ assignedBy: user?.id });
   const { announcements } = useAnnouncements();
@@ -157,7 +158,9 @@ export default function KomandanDashboard() {
                   key={task.id}
                   task={task}
                   showAssignee
-                  onAction={() => { window.location.href = '/komandan/tasks'; }}
+                  onAction={() => {
+                    navigate('/komandan/tasks');
+                  }}
                 />
               ))}
             </div>
