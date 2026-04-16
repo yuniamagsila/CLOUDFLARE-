@@ -13,14 +13,14 @@ type QueryOrder = {
   ascending: boolean;
 };
 
-type QueryResult<T = unknown> = {
+type QueryResult<T = any> = {
   data: T | null;
   error: { message: string } | null;
   count?: number | null;
 };
 
 export interface RealtimeChannel {
-  on: (_event: string, _filter: Record<string, unknown>, callback: () => void) => RealtimeChannel;
+  on: (_event: string, _filter: Record<string, unknown>, callback: (payload: any) => void) => RealtimeChannel;
   subscribe: () => RealtimeChannel;
 }
 
@@ -79,7 +79,7 @@ function normalizeTable(table: string): string {
   return table;
 }
 
-class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
+class QueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
   private action: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
 
   private filters: QueryFilter[] = [];
@@ -98,10 +98,11 @@ class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
 
   constructor(private readonly table: string) {}
 
-  select(columns = '*', options?: { head?: boolean }): this {
+  select(columns = '*', options?: { head?: boolean; count?: string }): this {
     this.action = 'select';
     this.selectedColumns = columns;
     this.selectHead = Boolean(options?.head);
+    void options?.count;
     return this;
   }
 
@@ -122,8 +123,9 @@ class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
     return this;
   }
 
-  upsert(payload: unknown, _options?: { onConflict?: string }): this {
+  upsert(payload: unknown, options?: { onConflict?: string }): this {
     this.action = 'upsert';
+    void options;
     this.payload = payload;
     return this;
   }
@@ -145,6 +147,11 @@ class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
 
   lte(column: string, value: FilterValue): this {
     this.filters.push({ op: 'lte', column, value });
+    return this;
+  }
+
+  or(expression: string): this {
+    void expression;
     return this;
   }
 
@@ -222,7 +229,7 @@ class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
 }
 
 const createNoopChannel = (): RealtimeChannel => {
-  const listeners: Array<() => void> = [];
+  const listeners: Array<(payload: any) => void> = [];
   return {
     on: (_event, _filter, callback) => {
       listeners.push(callback);
@@ -260,7 +267,7 @@ function rpcFallback(name: string): RpcData {
 export const isSupabaseConfigured = true;
 
 export const supabase = {
-  from: <T = unknown>(table: string) => new QueryBuilder<T>(table),
+  from: <T = any>(table: string) => new QueryBuilder<T>(table),
 
   rpc: async <T = unknown>(name: string, args?: Record<string, unknown>): Promise<QueryResult<T>> => {
     const result = await safeFetch<T>(`/rpc/${encodeURIComponent(name)}`, {
@@ -278,23 +285,34 @@ export const supabase = {
     return result;
   },
 
-  channel: (_topic: string): RealtimeChannel => createNoopChannel(),
+  channel: (topic: string): RealtimeChannel => {
+    void topic;
+    return createNoopChannel();
+  },
 
-  removeChannel: async (_channel: RealtimeChannel): Promise<void> => {
+  removeChannel: async (channel: RealtimeChannel): Promise<void> => {
+    void channel;
     return Promise.resolve();
   },
 
   storage: {
-    from: (_bucket: string) => ({
-      upload: async (path: string, _file: File, _options?: { upsert?: boolean }) => ({
-        data: { path },
-        error: null,
-      }),
-      getPublicUrl: (path: string) => ({
-        data: {
-          publicUrl: path,
+    from: (bucket: string) => {
+      void bucket;
+      return {
+        upload: async (path: string, file: File, options?: { upsert?: boolean; contentType?: string }) => {
+          void file;
+          void options;
+          return {
+            data: { path },
+            error: null,
+          };
         },
-      }),
-    }),
+        getPublicUrl: (path: string) => ({
+          data: {
+            publicUrl: path,
+          },
+        }),
+      };
+    },
   },
 };
