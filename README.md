@@ -41,7 +41,7 @@ npm install qrcode.react html5-qrcode
 | **Zustand** | 5.x | State Management |
 | **Tailwind CSS** | 4.x | Styling |
 | **React Router** | 6.x | Client-side Routing |
-| **GitHub Pages** | — | Hosting & Deployment |
+| **Cloudflare Pages** | — | Hosting & Deployment |
 
 ---
 
@@ -76,7 +76,7 @@ npm run test:coverage
 Untuk menjalankan smoke test ke environment production (Playwright):
 
 ```bash
-E2E_BASE_URL=https://yuniamagsila.github.io/v/ npm run test:smoke:prod
+E2E_BASE_URL=https://karyo-os.pages.dev npm run test:smoke:prod
 ```
 
 Workflow GitHub Actions manual juga tersedia di `.github/workflows/production-smoke.yml`.
@@ -251,7 +251,7 @@ karyo-os/
 
 - Node.js >= 20.x
 - Akun [Supabase](https://supabase.com) + project yang sudah dibuat
-- Akun GitHub dengan GitHub Pages aktif
+- Akun [Cloudflare](https://cloudflare.com) dengan Cloudflare Pages aktif
 
 ### 1. Clone & Setup Pertama Kali
 
@@ -278,7 +278,7 @@ npm run dev
 
 Akses di `http://localhost:5173`
 
-### 3. Deploy ke Supabase + GitHub Pages
+### 3. Deploy ke Supabase + Cloudflare Pages
 
 ```bash
 bash scripts/deploy.sh
@@ -287,8 +287,8 @@ bash scripts/deploy.sh
 Script `deploy.sh` akan otomatis:
 - Menerapkan migration terbaru ke Supabase
 - Build production (`npm run build`)
-- Menyiapkan artefak frontend untuk GitHub Pages
-- GitHub Actions yang mendorong deployment production
+- Menyiapkan artefak frontend untuk Cloudflare Pages
+- GitHub Actions yang mendorong deployment production via Wrangler CLI
 
 Untuk deploy ulang frontend, push ke branch `main` atau jalankan workflow GitHub Actions deploy production.
 
@@ -354,7 +354,14 @@ SUPABASE_PROJECT_REF="<reference id project>"
 SUPABASE_DB_PASSWORD="<password database postgres>"
 ```
 
-Workflow deploy produksi akan menjalankan `supabase link` lalu `supabase db push` sebelum build frontend, selama ketiga nilai tersebut tersedia.
+Untuk deploy ke Cloudflare Pages via Wrangler CLI, tambahkan secrets berikut:
+
+```bash
+CLOUDFLARE_API_TOKEN="<cloudflare api token dengan izin Pages:Edit>"
+CLOUDFLARE_ACCOUNT_ID="<cloudflare account id>"
+```
+
+Workflow deploy produksi akan menjalankan `supabase link` lalu `supabase db push` sebelum build frontend, selama ketiga nilai Supabase tersedia.
 
 ---
 

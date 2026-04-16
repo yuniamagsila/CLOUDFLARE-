@@ -2,7 +2,7 @@
 # ============================================================
 # KARYO OS — Build & Deploy Supabase via Terminal
 # Jalankan: bash scripts/deploy.sh
-# GitHub Pages deployment frontend ditangani oleh GitHub Actions.
+# Cloudflare Pages deployment frontend ditangani oleh GitHub Actions.
 # ============================================================
 set -euo pipefail
 
@@ -51,15 +51,15 @@ info "Menjalankan build Vite..."
 npm run build
 success "Build selesai. Output: dist/"
 
-# ── 3. Siapkan frontend untuk GitHub Pages ───────────────────
-section "3. Siapkan Frontend GitHub Pages"
-info "Artefak frontend tersedia di dist/. Deploy ke GitHub Pages berjalan via workflow GitHub Actions."
+# ── 3. Siapkan frontend untuk Cloudflare Pages ───────────────
+section "3. Siapkan Frontend Cloudflare Pages"
+info "Artefak frontend tersedia di dist/. Deploy ke Cloudflare Pages berjalan via workflow GitHub Actions."
 
 # ── Selesai ──────────────────────────────────────────────────
 section "✅ Deploy Selesai!"
 echo ""
 echo -e "  ${GREEN}Migrasi Supabase selesai dan frontend sudah dibuild.${NC}"
-echo -e "  URL produksi GitHub Pages dikelola oleh workflow GitHub Actions."
+echo -e "  URL produksi Cloudflare Pages dikelola oleh workflow GitHub Actions."
 echo ""
 echo -e "  ${YELLOW}Checklist pasca-deploy:${NC}"
 echo -e "  [ ] Login dengan NRP 1000001 dan PIN 123456 (jika seed data dijalankan)"

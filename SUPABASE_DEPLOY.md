@@ -1,6 +1,6 @@
 # 🚀 Panduan Deploy via Terminal (Codespace) — KARYO OS
 
-Panduan lengkap untuk setup dan deploy **KARYO OS** ke Supabase + GitHub Pages langsung dari terminal GitHub Codespaces — tanpa perlu membuka browser dashboard selama proses berlangsung.
+Panduan lengkap untuk setup dan deploy **KARYO OS** ke Supabase + Cloudflare Pages langsung dari terminal GitHub Codespaces — tanpa perlu membuka browser dashboard selama proses berlangsung.
 
 ---
 
@@ -8,7 +8,7 @@ Panduan lengkap untuk setup dan deploy **KARYO OS** ke Supabase + GitHub Pages l
 
 1. [Prasyarat](#1-prasyarat)
 2. [Setup Pertama Kali](#2-setup-pertama-kali)
-3. [Deploy ke Supabase + GitHub Pages](#3-deploy-ke-supabase--github-pages)
+3. [Deploy ke Supabase + Cloudflare Pages](#3-deploy-ke-supabase--cloudflare-pages)
 4. [Seed Data Sample](#4-seed-data-sample)
 5. [Aktifkan Realtime](#5-aktifkan-realtime)
 6. [Verifikasi Deploy](#6-verifikasi-deploy)
@@ -25,7 +25,7 @@ Sebelum memulai, siapkan:
 |---|---|
 | **GitHub Codespaces** | Atau Linux terminal dengan Node.js >= 20 |
 | **Akun Supabase** | Daftar gratis di [supabase.com](https://supabase.com) |
-| **Akun GitHub** | Repository ini dideploy ke GitHub Pages via GitHub Actions |
+| **Akun Cloudflare** | Repository ini dideploy ke Cloudflare Pages via GitHub Actions menggunakan Wrangler CLI |
 | **Supabase Project** | Buat project baru di dashboard, catat **Project ID** dan **API keys** |
 
 ### Cara mendapatkan Supabase credentials:
@@ -35,6 +35,11 @@ Sebelum memulai, siapkan:
    - **Project URL** → untuk `VITE_SUPABASE_URL`
    - **anon public** key → untuk `VITE_SUPABASE_ANON_KEY`
 4. **Settings** → **General** → catat **Reference ID** → untuk `Project ID`
+
+### Cara mendapatkan Cloudflare credentials:
+1. Buka [dash.cloudflare.com](https://dash.cloudflare.com) → **My Profile** → **API Tokens**
+2. Buat token baru dengan template **Edit Cloudflare Workers** atau buat Custom Token dengan izin `Cloudflare Pages: Edit`
+3. Catat **Account ID** dari halaman utama dashboard Cloudflare (kanan bawah)
 
 > ⚠️ Gunakan hanya `anon public` key di frontend. Jangan gunakan `service_role` key.
 
@@ -85,7 +90,7 @@ Applying migration 004_production_rls.sql...
 
 ---
 
-## 3. Deploy ke Supabase + GitHub Pages
+## 3. Deploy ke Supabase + Cloudflare Pages
 
 Setelah setup selesai, jalankan:
 
@@ -99,12 +104,12 @@ Workflow ini akan:
 |---|---|
 | Terapkan migrasi terbaru | `supabase db push` |
 | Build production | `npm run build` |
-| Upload artifact Pages | `actions/upload-pages-artifact` |
-| Deploy ke production | `actions/deploy-pages` |
+| Deploy ke Cloudflare Pages | `wrangler pages deploy dist --project-name karyo-os` |
 
 ### Catatan penting:
 - Workflow membaca `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY` dari GitHub Secrets saat build
-- GitHub Pages menggunakan base path `/v/` dan hash routing agar refresh/deep-link tetap aman
+- Cloudflare Pages melayani SPA dari root `/` — routing fallback ditangani oleh `public/_redirects`
+- Secrets `CLOUDFLARE_API_TOKEN` dan `CLOUDFLARE_ACCOUNT_ID` wajib ditambahkan ke GitHub repository
 - Setiap kali ada perubahan kode, cukup jalankan `git push origin main`
 
 ---
@@ -200,10 +205,10 @@ leave_requests, logistics_items, logistics_requests, messages,
 shift_schedules, task_reports, tasks, users
 ```
 
-### Cek status GitHub Pages:
+### Cek status Cloudflare Pages:
 
-- Buka tab **Actions** dan lihat workflow **GitHub Pages Deploy**
-- URL produksi: `https://yuniamagsila.github.io/v/`
+- Buka tab **Actions** dan lihat workflow **Cloudflare Pages Deploy**
+- URL produksi: `https://karyo-os.pages.dev`
 
 ### Test RLS:
 
@@ -252,14 +257,23 @@ supabase migration list
 supabase migration repair --status applied <versi_migration>
 ```
 
-### ❌ Build GitHub Pages gagal — env variable tidak terdeteksi
+### ❌ Build Cloudflare Pages gagal — env variable tidak terdeteksi
 
 Pastikan secrets berikut sudah ditambahkan di repository:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
-Lalu jalankan ulang workflow **GitHub Pages Deploy** dari tab Actions.
+Lalu jalankan ulang workflow **Cloudflare Pages Deploy** dari tab Actions.
+
+### ❌ Deploy Wrangler gagal — autentikasi Cloudflare ditolak
+
+Pastikan secrets berikut sudah ditambahkan di repository:
+
+- `CLOUDFLARE_API_TOKEN` — API token dengan izin `Cloudflare Pages: Edit`
+- `CLOUDFLARE_ACCOUNT_ID` — Account ID dari dashboard Cloudflare
+
+Buat API token baru di [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens).
 
 ### ❌ Login gagal padahal NRP & PIN benar
 
@@ -300,20 +314,15 @@ supabase studio                       # Buka Supabase Studio di browser
 supabase logout                       # Logout
 ```
 
-### Netlify CLI
+### Wrangler CLI (Cloudflare Pages)
 
 ```bash
-netlify login                         # Login ke Netlify
-netlify sites:list                    # Daftar semua site
-netlify sites:create --name <nama>    # Buat site baru
-netlify link --id <SITE_ID>           # Hubungkan ke site
-netlify env:list                      # Lihat env variables
-netlify env:set <KEY> <VALUE>         # Set env variable
-netlify deploy --dir=dist --prod      # Deploy ke production
-netlify deploy --dir=dist             # Deploy preview (bukan prod)
-netlify status                        # Status site
-netlify open                          # Buka site di browser
-netlify logout                        # Logout
+npx wrangler login                                              # Login ke Cloudflare
+npx wrangler pages project list                                 # Daftar semua Pages project
+npx wrangler pages project create karyo-os                      # Buat project baru
+npx wrangler pages deploy dist --project-name karyo-os          # Deploy ke production
+npx wrangler pages deployment list --project-name karyo-os      # Lihat daftar deployment
+npx wrangler pages deployment tail --project-name karyo-os      # Lihat log deployment terbaru
 ```
 
 ### Script proyek

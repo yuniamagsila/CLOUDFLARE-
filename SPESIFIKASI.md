@@ -869,22 +869,22 @@ APPROVED  REJECTED
 
 ## 11. Spesifikasi Deployment
 
-### 11.1 GitHub Pages Configuration
+### 11.1 Cloudflare Pages Configuration
 
-Deployment frontend dijalankan di GitHub Pages dengan konfigurasi berikut:
+Deployment frontend dijalankan di Cloudflare Pages dengan konfigurasi berikut:
 
-- Hash router agar refresh dan deep-link aman di subpath Pages
-- Base path `/v/` untuk repository project page
-- `public/404.html` sebagai fallback redirect SPA
-- Build production dijalankan oleh workflow GitHub Actions
+- SPA routing fallback ditangani oleh `public/_redirects` (`/* /index.html 200`)
+- Build dijalankan oleh workflow GitHub Actions dan dipublish via Wrangler CLI
+- Konfigurasi project Cloudflare Pages tersimpan di `wrangler.toml`
 
 ### 11.2 Vite Configuration
 
-`vite.config.ts` menggunakan base path dari `VITE_BASE_PATH` agar build bisa dipakai di GitHub Pages maupun environment lain.
+`vite.config.ts` menggunakan base path `/` — sesuai untuk Cloudflare Pages yang selalu melayani dari root domain.
 
 ### 11.3 Checklist Sebelum Deploy
 
-- [ ] Secret GitHub Actions untuk Supabase sudah diset
+- [ ] Secret GitHub Actions untuk Supabase sudah diset (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`)
+- [ ] Secret GitHub Actions untuk Cloudflare sudah diset (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`)
 - [ ] Build lokal berhasil (`npm run build`)
 - [ ] Migration SQL sudah dijalankan di Supabase
 - [ ] RLS sudah diaktifkan pada semua tabel
@@ -894,9 +894,9 @@ Deployment frontend dijalankan di GitHub Pages dengan konfigurasi berikut:
 
 ### 11.4 Domain & SSL
 
-- GitHub Pages menyediakan domain gratis: `yuniamagsila.github.io/v/`
-- HTTPS otomatis disediakan oleh GitHub Pages
-- Custom domain dapat dikonfigurasi di GitHub Pages Settings
+- Cloudflare Pages menyediakan domain gratis: `https://karyo-os.pages.dev`
+- HTTPS otomatis disediakan oleh Cloudflare
+- Custom domain dapat dikonfigurasi di Cloudflare Pages dashboard → **Custom Domains**
 
 ---
 
@@ -991,7 +991,7 @@ Deployment frontend dijalankan di GitHub Pages dengan konfigurasi berikut:
 - [ ] Dashboard Prajurit (core features)
 - [ ] Dashboard Komandan (core features)
 - [ ] Dashboard Admin (core features)
-- [ ] Deploy ke GitHub Pages
+- [ ] Deploy ke Cloudflare Pages
 
 ### Phase 2 — Enhancement (v1.5)
 - [ ] Notifikasi push (browser notifications)
