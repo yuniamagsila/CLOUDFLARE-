@@ -33,7 +33,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
           state: ['zustand'],
           icons: ['lucide-react'],
           qr: ['html5-qrcode', 'react-qr-code'],

@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import StatCard, { StatsGrid } from '../../components/ui/StatCard';
 import PageHeader from '../../components/ui/PageHeader';
 import Button from '../../components/common/Button';
 import { StatCardsSkeleton } from '../../components/common/Skeleton';
-import { supabase } from '../../lib/supabase';
+import { supabase, type RealtimeChannel } from '../../lib/supabase';
 import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import type { AuditLog, Attendance } from '../../types';

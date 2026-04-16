@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, type RealtimeChannel } from '../lib/supabase';
 import { fetchLogisticsRequests as apiFetchLogistics, insertLogisticsRequest, patchLogisticsRequestStatus } from '../lib/api/logistics';
 import { handleError } from '../lib/handleError';
 import type { LogisticsRequest, LogisticsRequestStatus } from '../types';

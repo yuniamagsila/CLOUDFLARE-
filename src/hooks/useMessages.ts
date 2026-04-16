@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, type RealtimeChannel } from '../lib/supabase';
 import { fetchInbox, fetchSent, insertMessage, markMessageRead as apiMarkRead, markAllMessagesRead as apiMarkAllRead } from '../lib/api/messages';
 import { handleError } from '../lib/handleError';
 import type { Message } from '../types';

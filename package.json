@@ -23,11 +23,14 @@
     "test:unit": "vitest run src/tests/**/*.{test,spec}.{ts,tsx}",
     "test:e2e": "vitest run src/tests/pages/**/*.test.tsx",
     "test:smoke:prod": "E2E_USE_WEBSERVER=false playwright test smoke-prod.spec.ts --project=chromium --reporter=line",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "deploy:build": "npm run build",
+    "deploy:worker": "wrangler deploy",
+    "deploy:pages": "wrangler pages deploy dist --project-name karyo-os",
+    "deploy": "npm run deploy:build && npm run deploy:worker && npm run deploy:pages"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
-    "@supabase/supabase-js": "^2.49.4",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.8.0",
     "react": "^19.1.0",

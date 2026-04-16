@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, type RealtimeChannel } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
 import { useGatePassStore } from '../store/gatePassStore';
 
