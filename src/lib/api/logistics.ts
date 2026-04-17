@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { LogisticsRequest, LogisticsRequestStatus } from '../../types';
 
 export interface FetchLogisticsRequestsParams {
@@ -9,15 +9,15 @@ export interface FetchLogisticsRequestsParams {
 export async function fetchLogisticsRequests(
   params: FetchLogisticsRequestsParams = {},
 ): Promise<LogisticsRequest[]> {
-  let query = supabase
-    .from('logistics_requests')
-    .select('*, requester:requested_by(id,nama,nrp,pangkat,satuan), reviewer:reviewed_by(id,nama)')
-    .order('created_at', { ascending: false });
-  if (params.requestedBy) query = query.eq('requested_by', params.requestedBy);
-  if (params.satuan) query = query.eq('satuan', params.satuan);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data as LogisticsRequest[]) ?? [];
+  const data = await apiRequest<LogisticsRequest[]>('/logistics_requests', {
+    query: {
+      requested_by: params.requestedBy,
+      satuan: params.satuan,
+      order_by: 'created_at',
+      ascending: false,
+    },
+  });
+  return data ?? [];
 }
 
 export async function insertLogisticsRequest(data: {
@@ -28,8 +28,10 @@ export async function insertLogisticsRequest(data: {
   requested_by: string;
   satuan: string;
 }): Promise<void> {
-  const { error } = await supabase.from('logistics_requests').insert({ ...data, status: 'pending' });
-  if (error) throw error;
+  await apiRequest<void>('/logistics_requests', {
+    method: 'POST',
+    body: { ...data, status: 'pending' },
+  });
 }
 
 export async function patchLogisticsRequestStatus(
@@ -38,14 +40,13 @@ export async function patchLogisticsRequestStatus(
   reviewedBy: string,
   adminNote?: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('logistics_requests')
-    .update({
+  await apiRequest<void>(`/logistics_requests/${id}/status`, {
+    method: 'PATCH',
+    body: {
       status,
       admin_note: adminNote ?? null,
       reviewed_by: reviewedBy,
       reviewed_at: new Date().toISOString(),
-    })
-    .eq('id', id);
-  if (error) throw error;
+    },
+  });
 }

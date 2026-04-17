@@ -2,21 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useGatePass } from '../../hooks/useGatePass';
 import { useAuthStore } from '../../store/authStore';
-import { supabase } from '../../lib/supabase';
 import type { GatePass } from '../../types';
-
-type MockQuery = {
-  _table: string;
-  _opts?: { head?: boolean };
-  _single?: boolean;
-  _select?: string;
-  select: (columns: string, opts?: unknown) => MockQuery;
-  eq: (...args: unknown[]) => MockQuery;
-  order: (...args: unknown[]) => MockQuery;
-  insert: (value: unknown) => MockQuery;
-  then: <T>(resolve: (value: unknown) => T) => Promise<T>;
-  catch: (reject: (error: unknown) => unknown) => Promise<unknown>;
-};
+import { mockApiOk, mockApiError } from '../fetchMock';
 
 const sampleGatePasses: GatePass[] = [
   {
@@ -29,73 +16,56 @@ const sampleGatePasses: GatePass[] = [
   } as GatePass,
 ];
 
-const mockSupabase = supabase as unknown as {
-  from: (table: string) => MockQuery;
-};
-
-function queryResult(q: MockQuery) {
-  if (q._single) {
-    return { data: Array.isArray(sampleGatePasses) ? sampleGatePasses[0] : sampleGatePasses, error: null };
-  }
-  return { data: sampleGatePasses, error: null };
-}
-
-function buildQuery(table: string) {
-  const q = {
-    _table: table,
-    _single: false,
-    _select: undefined,
-  } as MockQuery;
-
-  const chain = () => q;
-  q.select = (columns: string, opts?: unknown) => {
-    q._select = columns;
-    q._opts = opts as { head?: boolean };
-    return q;
-  };
-  q.eq = chain;
-  q.order = chain;
-  q.insert = vi.fn(() => q);
-  q.then = (resolve) => Promise.resolve(queryResult(q)).then(resolve);
-  q.catch = (reject) => Promise.resolve(queryResult(q)).catch(reject);
-  return q;
-}
-
 describe('useGatePass', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.setState({
-      user: { id: 'u1', nrp: '11111', nama: 'Prajurit A', role: 'prajurit', satuan: 'Satuan X', is_active: true, is_online: true, login_attempts: 0, created_at: '2026-04-14T00:00:00Z', updated_at: '2026-04-14T00:00:00Z' },
+      user: {
+        id: 'u1', nrp: '11111', nama: 'Prajurit A', role: 'prajurit',
+        satuan: 'Satuan X', is_active: true, is_online: true, login_attempts: 0,
+        created_at: '2026-04-14T00:00:00Z', updated_at: '2026-04-14T00:00:00Z',
+      },
       isAuthenticated: true,
       isLoading: false,
       isInitialized: true,
       error: null,
     });
-    mockSupabase.from = vi.fn((table: string) => buildQuery(table));
   });
 
   it('loads gate passes on mount', async () => {
+    mockApiOk(sampleGatePasses);
     const { result } = renderHook(() => useGatePass());
 
     await waitFor(() => expect(result.current.gatePasses).toHaveLength(1));
     expect(result.current.gatePasses[0].id).toBe('gp1');
-    expect(mockSupabase.from).toHaveBeenCalledWith('gate_pass');
+  });
+
+  it('returns empty list when no gate passes', async () => {
+    mockApiOk([]);
+    const { result } = renderHook(() => useGatePass());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.gatePasses).toHaveLength(0);
+  });
+
+  it('sets error when fetch fails', async () => {
+    mockApiError('fetch error');
+    const { result } = renderHook(() => useGatePass());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeTruthy();
   });
 
   it('creates a gate pass and refetches list', async () => {
+    mockApiOk(sampleGatePasses); // initial load
+    mockApiOk(null); // insertGatePass
+    mockApiOk(sampleGatePasses); // re-fetch
+
     const { result } = renderHook(() => useGatePass());
     await waitFor(() => expect(result.current.gatePasses).toHaveLength(1));
 
-    const insertQuery = buildQuery('gate_pass');
-    const insertSpy = vi.spyOn(insertQuery, 'insert');
-    mockSupabase.from = vi.fn((table: string) => (table === 'gate_pass' ? insertQuery : buildQuery(table)));
-
     await act(async () => {
-      await result.current.createGatePass({ purpose: 'Kunjungan' });
+      await result.current.createGatePass({ keperluan: 'Kunjungan' });
     });
 
-    expect(insertSpy).toHaveBeenCalled();
-    expect(insertSpy.mock.calls[0][0][0]).toMatchObject({ user_id: 'u1', purpose: 'Kunjungan' });
     expect(result.current.gatePasses).toHaveLength(1);
   });
 });

@@ -1,13 +1,11 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { Document } from '../../types';
 
 export async function fetchDocuments(): Promise<Document[]> {
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*, uploader:uploaded_by(id,nama,nrp)')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as Document[]) ?? [];
+  const data = await apiRequest<Document[]>('/documents', {
+    query: { order_by: 'created_at', ascending: false },
+  });
+  return data ?? [];
 }
 
 export async function insertDocument(data: {
@@ -17,11 +15,9 @@ export async function insertDocument(data: {
   satuan?: string | null;
   file_size?: number | null;
 }): Promise<void> {
-  const { error } = await supabase.from('documents').insert(data);
-  if (error) throw error;
+  await apiRequest<void>('/documents', { method: 'POST', body: data });
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const { error } = await supabase.from('documents').delete().eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/documents/${id}`, { method: 'DELETE' });
 }

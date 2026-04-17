@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { AuditLog } from '../../types';
 
 export interface FetchAuditLogsParams {
@@ -8,14 +8,14 @@ export interface FetchAuditLogsParams {
 }
 
 export async function fetchAuditLogs(params: FetchAuditLogsParams = {}): Promise<AuditLog[]> {
-  let query = supabase
-    .from('audit_logs')
-    .select('*, user:user_id(id,nama,nrp,role)')
-    .order('created_at', { ascending: false })
-    .limit(params.limit ?? 100);
-  if (params.userId) query = query.eq('user_id', params.userId);
-  if (params.action) query = query.eq('action', params.action);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data as AuditLog[]) ?? [];
+  const data = await apiRequest<AuditLog[]>('/audit_logs', {
+    query: {
+      user_id: params.userId,
+      action: params.action,
+      limit: params.limit ?? 100,
+      order_by: 'created_at',
+      ascending: false,
+    },
+  });
+  return data ?? [];
 }

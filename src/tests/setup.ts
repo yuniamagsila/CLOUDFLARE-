@@ -1,6 +1,23 @@
 import '@testing-library/jest-dom';
 
-// Mock supabase module to prevent env var errors and network calls in tests
+// Stub global fetch so apiRequest() works in tests without a real server
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
+// Default implementation: return empty array with 200
+beforeEach(() => {
+  mockFetch.mockReset();
+  mockFetch.mockImplementation(async () => {
+    return new Response(JSON.stringify({ data: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  });
+  localStorage.clear();
+  sessionStorage.clear();
+});
+
+// Keep supabase mock for any remaining direct supabase usage in non-api components/pages
 vi.mock('../lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
@@ -11,10 +28,5 @@ vi.mock('../lib/supabase', () => ({
     })),
     removeChannel: vi.fn().mockResolvedValue(undefined),
   },
+  isSupabaseConfigured: true,
 }));
-
-// Reset localStorage between tests
-beforeEach(() => {
-  localStorage.clear();
-  sessionStorage.clear();
-});

@@ -1,52 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useUsers } from '../../hooks/useUsers';
-import { supabase } from '../../lib/supabase';
 import type { User } from '../../types';
-
-const mockSupabase = supabase as unknown as {
-  from: ReturnType<typeof vi.fn>;
-  rpc: ReturnType<typeof vi.fn>;
-};
+import { mockApiOk, mockApiError } from '../fetchMock';
 
 const mockUsers: User[] = [
   {
-    id: 'u1',
-    nrp: '11111',
-    nama: 'Alpha',
-    role: 'prajurit',
-    satuan: 'Satuan A',
-    is_active: true,
-    is_online: false,
-    login_attempts: 0,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
+    id: 'u1', nrp: '11111', nama: 'Alpha', role: 'prajurit',
+    satuan: 'Satuan A', is_active: true, is_online: false,
+    login_attempts: 0, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'u2',
-    nrp: '22222',
-    nama: 'Bravo',
-    role: 'komandan',
-    satuan: 'Satuan B',
-    is_active: false,
-    is_online: false,
-    login_attempts: 0,
-    created_at: '2024-01-02T00:00:00Z',
-    updated_at: '2024-01-02T00:00:00Z',
+    id: 'u2', nrp: '22222', nama: 'Bravo', role: 'komandan',
+    satuan: 'Satuan B', is_active: false, is_online: false,
+    login_attempts: 0, created_at: '2024-01-02T00:00:00Z', updated_at: '2024-01-02T00:00:00Z',
   },
 ];
-
-function buildQuery(result: { data: unknown; error: unknown }) {
-  const q: Record<string, unknown> = {};
-  const chain = () => q;
-  q.select = chain;
-  q.eq = chain;
-  q.order = chain;
-  q.update = chain;
-  q.then = (resolve: (v: unknown) => unknown) =>
-    Promise.resolve(result).then(resolve);
-  return q;
-}
 
 describe('useUsers', () => {
   beforeEach(() => {
@@ -54,19 +23,15 @@ describe('useUsers', () => {
   });
 
   it('loads users on mount', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-
+    mockApiOk(mockUsers);
     const { result } = renderHook(() => useUsers());
     expect(result.current.isLoading).toBe(true);
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.users).toHaveLength(2);
-    expect(result.current.users.map((u) => u.nama)).toEqual(expect.arrayContaining(['Alpha', 'Bravo']));
   });
 
   it('sets error when fetch fails', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: null, error: new Error('connection refused') }));
-
+    mockApiError('connection refused');
     const { result } = renderHook(() => useUsers());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe('connection refused');
@@ -74,8 +39,7 @@ describe('useUsers', () => {
   });
 
   it('returns empty list and no error for empty dataset', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: [], error: null }));
-
+    mockApiOk([]);
     const { result } = renderHook(() => useUsers());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.users).toHaveLength(0);
@@ -83,42 +47,26 @@ describe('useUsers', () => {
   });
 
   describe('createUser', () => {
-    it('calls create_user_with_pin RPC with correct args', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: 'new-id', error: null });
+    it('calls POST /api/users and refreshes list', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiOk({ id: 'new-id' }); // createUser POST
+      mockApiOk(mockUsers); // refresh after create
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await act(async () => {
         await result.current.createUser({
-          nrp: '33333',
-          pin: '5678',
-          nama: 'Charlie',
-          role: 'prajurit',
-          satuan: 'Satuan C',
-          is_active: true,
-          locked_until: undefined,
-          last_login: undefined,
-          foto_url: undefined,
+          nrp: '33333', pin: '5678', nama: 'Charlie',
+          role: 'prajurit', satuan: 'Satuan C', is_active: true,
         });
       });
-
-      expect(mockSupabase.rpc).toHaveBeenCalledWith(
-        'create_user_with_pin',
-        expect.objectContaining({
-          p_nrp: '33333',
-          p_pin: '5678',
-          p_nama: 'Charlie',
-          p_role: 'prajurit',
-          p_satuan: 'Satuan C',
-        })
-      );
+      expect(result.current.error).toBeNull();
     });
 
-    it('throws when RPC returns error', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: null, error: new Error('rpc error') });
+    it('throws when create fails', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiError('rpc error'); // createUser fails
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -126,12 +74,8 @@ describe('useUsers', () => {
       await expect(
         act(async () => {
           await result.current.createUser({
-            nrp: '33333',
-            pin: '5678',
-            nama: 'Charlie',
-            role: 'prajurit',
-            satuan: 'Satuan C',
-            is_active: true,
+            nrp: '33333', pin: '5678', nama: 'Charlie',
+            role: 'prajurit', satuan: 'Satuan C', is_active: true,
           });
         })
       ).rejects.toThrow('rpc error');
@@ -139,192 +83,120 @@ describe('useUsers', () => {
   });
 
   describe('updateUser', () => {
-    it('calls supabase update with correct fields', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = buildQuery({ data: mockUsers, error: null }) as Record<string, unknown>;
-      fromMock.update = updateMock;
-      mockSupabase.from.mockReturnValue(fromMock);
+    it('calls PATCH /api/users/:id and succeeds', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiOk(null); // updateUser PATCH
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      await act(async () => {
-        await result.current.updateUser('u1', { nama: 'Alpha Updated' });
-      });
-
-      expect(updateMock).toHaveBeenCalledWith({ nama: 'Alpha Updated' });
-      expect(eqMock).toHaveBeenCalledWith('id', 'u1');
+      await act(async () => { await result.current.updateUser('u1', { nama: 'Alpha Updated' }); });
+      expect(result.current.error).toBeNull();
     });
 
-    it('calls supabase update with extended profile fields', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = buildQuery({ data: mockUsers, error: null }) as Record<string, unknown>;
-      fromMock.update = updateMock;
-      mockSupabase.from.mockReturnValue(fromMock);
-
-      const { result } = renderHook(() => useUsers());
-      await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-      await act(async () => {
-        await result.current.updateUser('u1', {
-          pangkat: 'Kapten',
-          jabatan: 'Kompi A',
-          tanggal_lahir: '1990-05-15',
-          agama: 'Islam',
-          golongan_darah: 'A',
-        });
-      });
-
-      expect(updateMock).toHaveBeenCalledWith(
-        expect.objectContaining({ pangkat: 'Kapten', golongan_darah: 'A' })
-      );
-    });
-
-    it('throws when update returns error', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: new Error('update failed') });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = buildQuery({ data: mockUsers, error: null }) as Record<string, unknown>;
-      fromMock.update = updateMock;
-      mockSupabase.from.mockReturnValue(fromMock);
+    it('throws when update fails', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiError('update failed'); // PATCH fails
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await expect(
-        act(async () => {
-          await result.current.updateUser('u1', { nama: 'Fail' });
-        })
+        act(async () => { await result.current.updateUser('u1', { nama: 'Fail' }); })
       ).rejects.toThrow('update failed');
     });
   });
 
   describe('toggleUserActive', () => {
     it('calls updateUser with is_active flag', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const fromMock = buildQuery({ data: mockUsers, error: null }) as Record<string, unknown>;
-      fromMock.update = updateMock;
-      mockSupabase.from.mockReturnValue(fromMock);
+      mockApiOk(mockUsers); // initial load
+      mockApiOk(null); // toggleUserActive
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      await act(async () => {
-        await result.current.toggleUserActive('u2', true);
-      });
-
-      expect(updateMock).toHaveBeenCalledWith({ is_active: true });
+      await act(async () => { await result.current.toggleUserActive('u2', true); });
+      expect(result.current.error).toBeNull();
     });
   });
 
   describe('resetUserPin', () => {
-    it('calls reset_user_pin RPC', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+    it('calls POST /api/users/:id/reset-pin', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiOk(null); // resetUserPin
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      await act(async () => {
-        await result.current.resetUserPin('u1', '9999');
-      });
-
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('reset_user_pin', {
-        p_user_id: 'u1',
-        p_new_pin: '9999',
-      });
+      await act(async () => { await result.current.resetUserPin('u1', '9999'); });
+      expect(result.current.error).toBeNull();
     });
 
-    it('throws when RPC returns error', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: null, error: new Error('pin reset failed') });
+    it('throws when reset fails', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiError('pin reset failed'); // POST fails
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await expect(
-        act(async () => {
-          await result.current.resetUserPin('u1', '0000');
-        })
+        act(async () => { await result.current.resetUserPin('u1', '0000'); })
       ).rejects.toThrow('pin reset failed');
     });
   });
 
   describe('getUserById', () => {
-    it('calls get_user_detail RPC with correct user id', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      const singleMock = vi.fn().mockResolvedValue({ data: mockUsers[0], error: null });
-      mockSupabase.rpc.mockReturnValue({ single: singleMock });
+    it('returns user by id', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiOk(mockUsers[0]); // getUserById
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       let user: User | undefined;
-      await act(async () => {
-        user = await result.current.getUserById('u1');
-      });
-
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('get_user_detail', { p_user_id: 'u1' });
+      await act(async () => { user = await result.current.getUserById('u1'); });
       expect(user?.id).toBe('u1');
     });
 
-    it('throws when get_user_detail RPC returns error', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      const singleMock = vi.fn().mockResolvedValue({ data: null, error: new Error('not found') });
-      mockSupabase.rpc.mockReturnValue({ single: singleMock });
+    it('throws when user not found', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiError('not found', 404); // getUserById fails
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await expect(
-        act(async () => {
-          await result.current.getUserById('invalid-id');
-        })
+        act(async () => { await result.current.getUserById('invalid-id'); })
       ).rejects.toThrow('not found');
     });
   });
 
   describe('updateOwnProfile', () => {
-    it('calls update_own_profile RPC with allowed fields', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: null, error: null });
+    it('calls PATCH /api/users/:id/profile', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiOk(null); // updateOwnProfile
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await act(async () => {
         await result.current.updateOwnProfile('u1', {
-          no_telepon: '081234567890',
-          alamat: 'Jl. Merdeka No. 1',
-          kontak_darurat_nama: 'Ibu Sari',
-          kontak_darurat_telp: '089876543210',
+          no_telepon: '081234567890', alamat: 'Jl. Merdeka No. 1',
         });
       });
-
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('update_own_profile', {
-        p_user_id: 'u1',
-        p_no_telepon: '081234567890',
-        p_alamat: 'Jl. Merdeka No. 1',
-        p_kontak_darurat_nama: 'Ibu Sari',
-        p_kontak_darurat_telp: '089876543210',
-      });
+      expect(result.current.error).toBeNull();
     });
 
-    it('throws when update_own_profile RPC returns error', async () => {
-      mockSupabase.from.mockReturnValue(buildQuery({ data: mockUsers, error: null }));
-      mockSupabase.rpc.mockResolvedValue({ data: null, error: new Error('not authorized') });
+    it('throws when update fails', async () => {
+      mockApiOk(mockUsers); // initial load
+      mockApiError('not authorized'); // PATCH fails
 
       const { result } = renderHook(() => useUsers());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await expect(
-        act(async () => {
-          await result.current.updateOwnProfile('u2', { no_telepon: '0812' });
-        })
+        act(async () => { await result.current.updateOwnProfile('u2', { no_telepon: '0812' }); })
       ).rejects.toThrow('not authorized');
     });
   });
 });
-

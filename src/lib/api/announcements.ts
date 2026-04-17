@@ -1,14 +1,11 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { Announcement, Role } from '../../types';
 
 export async function fetchAnnouncements(): Promise<Announcement[]> {
-  const { data, error } = await supabase
-    .from('announcements')
-    .select('*, creator:created_by(id,nama,nrp,role)')
-    .order('is_pinned', { ascending: false })
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data as Announcement[]) ?? [];
+  const data = await apiRequest<Announcement[]>('/announcements', {
+    query: { order_by: 'is_pinned', ascending: false },
+  });
+  return data ?? [];
 }
 
 export async function insertAnnouncement(data: {
@@ -19,16 +16,13 @@ export async function insertAnnouncement(data: {
   target_satuan?: string;
   is_pinned?: boolean;
 }): Promise<void> {
-  const { error } = await supabase.from('announcements').insert(data);
-  if (error) throw error;
+  await apiRequest<void>('/announcements', { method: 'POST', body: data });
 }
 
 export async function patchAnnouncement(id: string, updates: Partial<Announcement>): Promise<void> {
-  const { error } = await supabase.from('announcements').update(updates).eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/announcements/${id}`, { method: 'PATCH', body: updates });
 }
 
 export async function deleteAnnouncement(id: string): Promise<void> {
-  const { error } = await supabase.from('announcements').delete().eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/announcements/${id}`, { method: 'DELETE' });
 }

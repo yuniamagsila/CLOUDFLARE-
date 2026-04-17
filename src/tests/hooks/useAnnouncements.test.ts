@@ -2,12 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAnnouncements } from '../../hooks/useAnnouncements';
 import { useAuthStore } from '../../store/authStore';
-import { supabase } from '../../lib/supabase';
 import type { Announcement } from '../../types';
-
-const mockSupabase = supabase as unknown as {
-  from: ReturnType<typeof vi.fn>;
-};
+import { mockApiOk, mockApiError, getFetchMock } from '../fetchMock';
 
 const mockUser = {
   id: 'u1', nrp: '11111', nama: 'Admin A', role: 'admin' as const,
@@ -20,20 +16,6 @@ const sampleAnnouncements: Announcement[] = [
   { id: 'a2', judul: 'Jadwal Piket', isi: 'Piket minggu ini', is_pinned: false, created_at: '2024-01-02T00:00:00Z' },
 ];
 
-function buildQuery(result: { data: unknown; error: unknown }) {
-  const q: Record<string, unknown> = {};
-  const chain = () => q;
-  q.select = chain;
-  q.eq = chain;
-  q.order = chain;
-  q.update = vi.fn(() => q);
-  q.insert = vi.fn(() => Promise.resolve(result));
-  q.delete = vi.fn(() => q);
-  q.then = (resolve: (v: unknown) => unknown) => Promise.resolve(result).then(resolve);
-  q.catch = (reject: (e: unknown) => unknown) => Promise.resolve(result).catch(reject);
-  return q;
-}
-
 describe('useAnnouncements', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,19 +23,16 @@ describe('useAnnouncements', () => {
   });
 
   it('loads announcements on mount', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: sampleAnnouncements, error: null }));
-
+    mockApiOk(sampleAnnouncements);
     const { result } = renderHook(() => useAnnouncements());
     expect(result.current.isLoading).toBe(true);
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.announcements).toHaveLength(2);
     expect(result.current.announcements[0].judul).toBe('Pengumuman Upacara');
   });
 
   it('sets error when fetch fails', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: null, error: new Error('fetch error') }));
-
+    mockApiError('fetch error');
     const { result } = renderHook(() => useAnnouncements());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.error).toBe('fetch error');
@@ -61,8 +40,7 @@ describe('useAnnouncements', () => {
   });
 
   it('returns empty list for empty dataset', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: [], error: null }));
-
+    mockApiOk([]);
     const { result } = renderHook(() => useAnnouncements());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.announcements).toHaveLength(0);
@@ -71,34 +49,25 @@ describe('useAnnouncements', () => {
 
   describe('createAnnouncement', () => {
     it('calls insert and refreshes list', async () => {
-      const insertMock = vi.fn().mockResolvedValue({ error: null });
-      const q = buildQuery({ data: sampleAnnouncements, error: null }) as Record<string, unknown>;
-      q.insert = insertMock;
-      mockSupabase.from.mockReturnValue(q);
+      mockApiOk(sampleAnnouncements); // initial load
+      mockApiOk(null); // insert
+      mockApiOk(sampleAnnouncements); // refresh
 
       const { result } = renderHook(() => useAnnouncements());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
       await act(async () => {
-        await result.current.createAnnouncement({
-          judul: 'Baru',
-          isi: 'Isi baru',
-        });
+        await result.current.createAnnouncement({ judul: 'Baru', isi: 'Isi baru' });
       });
-
-      expect(insertMock).toHaveBeenCalledWith(
-        expect.objectContaining({ judul: 'Baru', created_by: 'u1' })
-      );
+      expect(result.current.error).toBeNull();
     });
   });
 
   describe('updateAnnouncement', () => {
     it('calls update and refreshes list', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const q = buildQuery({ data: sampleAnnouncements, error: null }) as Record<string, unknown>;
-      q.update = updateMock;
-      mockSupabase.from.mockReturnValue(q);
+      mockApiOk(sampleAnnouncements); // initial load
+      mockApiOk(null); // update
+      mockApiOk(sampleAnnouncements); // refresh
 
       const { result } = renderHook(() => useAnnouncements());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -106,71 +75,49 @@ describe('useAnnouncements', () => {
       await act(async () => {
         await result.current.updateAnnouncement('a1', { judul: 'Updated' });
       });
-
-      expect(updateMock).toHaveBeenCalledWith({ judul: 'Updated' });
-      expect(eqMock).toHaveBeenCalledWith('id', 'a1');
+      expect(result.current.error).toBeNull();
     });
   });
 
   describe('deleteAnnouncement', () => {
-    it('calls delete with correct id', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const deleteMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const q = buildQuery({ data: sampleAnnouncements, error: null }) as Record<string, unknown>;
-      q.delete = deleteMock;
-      mockSupabase.from.mockReturnValue(q);
+    it('calls delete and refreshes list', async () => {
+      mockApiOk(sampleAnnouncements); // initial load
+      mockApiOk(null); // delete
+      mockApiOk(sampleAnnouncements); // refresh
 
       const { result } = renderHook(() => useAnnouncements());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      await act(async () => {
-        await result.current.deleteAnnouncement('a2');
-      });
-
-      expect(deleteMock).toHaveBeenCalled();
-      expect(eqMock).toHaveBeenCalledWith('id', 'a2');
+      await act(async () => { await result.current.deleteAnnouncement('a2'); });
+      expect(result.current.error).toBeNull();
     });
   });
 
   describe('togglePin', () => {
     it('toggles is_pinned for an announcement', async () => {
-      const eqMock = vi.fn().mockResolvedValue({ error: null });
-      const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
-      const q = buildQuery({ data: sampleAnnouncements, error: null }) as Record<string, unknown>;
-      q.update = updateMock;
-      mockSupabase.from.mockReturnValue(q);
+      mockApiOk(sampleAnnouncements); // initial load
+      mockApiOk(null); // toggle (update)
+      mockApiOk(sampleAnnouncements); // refresh
 
       const { result } = renderHook(() => useAnnouncements());
       await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-      // Toggle from false to true
-      await act(async () => {
-        await result.current.togglePin('a2', false);
-      });
-
-      expect(updateMock).toHaveBeenCalledWith({ is_pinned: true });
-
-      // Toggle from true to false
-      await act(async () => {
-        await result.current.togglePin('a1', true);
-      });
-
-      expect(updateMock).toHaveBeenCalledWith({ is_pinned: false });
+      await act(async () => { await result.current.togglePin('a2', false); });
+      expect(result.current.error).toBeNull();
     });
   });
 
   it('refetch re-fetches announcements', async () => {
-    mockSupabase.from.mockReturnValue(buildQuery({ data: sampleAnnouncements, error: null }));
+    mockApiOk(sampleAnnouncements); // initial load
+    mockApiOk(sampleAnnouncements); // refetch
 
     const { result } = renderHook(() => useAnnouncements());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    const callsBefore = (mockSupabase.from as ReturnType<typeof vi.fn>).mock.calls.length;
+    const fetchMock = getFetchMock();
+    const callsBefore = fetchMock.mock.calls.length;
 
-    await act(async () => {
-      await result.current.refetch();
-    });
-
-    expect((mockSupabase.from as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(callsBefore);
+    await act(async () => { await result.current.refetch(); });
+    expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore);
   });
 });

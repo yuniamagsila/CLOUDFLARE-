@@ -1,4 +1,4 @@
-import { supabase } from '../supabase';
+import { apiRequest } from './client';
 import type { LeaveRequest, LeaveStatus } from '../../types';
 
 export interface FetchLeaveRequestsParams {
@@ -6,14 +6,10 @@ export interface FetchLeaveRequestsParams {
 }
 
 export async function fetchLeaveRequests(params: FetchLeaveRequestsParams = {}): Promise<LeaveRequest[]> {
-  let query = supabase
-    .from('leave_requests')
-    .select('*, user:user_id(id,nama,nrp,pangkat,satuan), reviewer:reviewed_by(id,nama)')
-    .order('created_at', { ascending: false });
-  if (params.userId) query = query.eq('user_id', params.userId);
-  const { data, error } = await query;
-  if (error) throw error;
-  return (data as LeaveRequest[]) ?? [];
+  const data = await apiRequest<LeaveRequest[]>('/leave_requests', {
+    query: { user_id: params.userId, order_by: 'created_at', ascending: false },
+  });
+  return data ?? [];
 }
 
 export async function insertLeaveRequest(data: {
@@ -23,8 +19,10 @@ export async function insertLeaveRequest(data: {
   tanggal_selesai: string;
   alasan: string;
 }): Promise<void> {
-  const { error } = await supabase.from('leave_requests').insert({ ...data, status: 'pending' });
-  if (error) throw error;
+  await apiRequest<void>('/leave_requests', {
+    method: 'POST',
+    body: { ...data, status: 'pending' },
+  });
 }
 
 export async function patchLeaveRequestStatus(
@@ -32,9 +30,8 @@ export async function patchLeaveRequestStatus(
   status: LeaveStatus,
   reviewedBy: string,
 ): Promise<void> {
-  const { error } = await supabase
-    .from('leave_requests')
-    .update({ status, reviewed_by: reviewedBy, reviewed_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) throw error;
+  await apiRequest<void>(`/leave_requests/${id}/status`, {
+    method: 'PATCH',
+    body: { status, reviewed_by: reviewedBy, reviewed_at: new Date().toISOString() },
+  });
 }
