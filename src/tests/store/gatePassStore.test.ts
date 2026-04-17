@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useGatePassStore } from '../../store/gatePassStore';
 import { useAuthStore } from '../../store/authStore';
 import type { GatePass } from '../../types';
-import { mockApiOk, mockApiError } from '../fetchMock';
+import { mockApiOk } from '../fetchMock';
 
 const now = new Date();
 const overdueTime = new Date(now.getTime() - 1000 * 60 * 60).toISOString();

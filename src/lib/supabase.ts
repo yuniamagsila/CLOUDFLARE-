@@ -13,14 +13,14 @@ type QueryOrder = {
   ascending: boolean;
 };
 
-type QueryResult<T = any> = {
+type QueryResult<T = unknown> = {
   data: T | null;
   error: { message: string } | null;
   count?: number | null;
 };
 
 export interface RealtimeChannel {
-  on: (_event: string, _filter: Record<string, unknown>, callback: (payload: any) => void) => RealtimeChannel;
+  on: (_event: string, _filter: Record<string, unknown>, callback: (payload: unknown) => void) => RealtimeChannel;
   subscribe: () => RealtimeChannel;
 }
 
@@ -79,7 +79,7 @@ function normalizeTable(table: string): string {
   return table;
 }
 
-class QueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
+class QueryBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
   private action: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
 
   private filters: QueryFilter[] = [];
@@ -229,7 +229,7 @@ class QueryBuilder<T = any> implements PromiseLike<QueryResult<T>> {
 }
 
 const createNoopChannel = (): RealtimeChannel => {
-  const listeners: Array<(payload: any) => void> = [];
+  const listeners: Array<(payload: unknown) => void> = [];
   return {
     on: (_event, _filter, callback) => {
       listeners.push(callback);
@@ -267,7 +267,7 @@ function rpcFallback(name: string): RpcData {
 export const isSupabaseConfigured = true;
 
 export const supabase = {
-  from: <T = any>(table: string) => new QueryBuilder<T>(table),
+  from: <T = unknown>(table: string) => new QueryBuilder<T>(table),
 
   rpc: async <T = unknown>(name: string, args?: Record<string, unknown>): Promise<QueryResult<T>> => {
     const result = await safeFetch<T>(`/rpc/${encodeURIComponent(name)}`, {
